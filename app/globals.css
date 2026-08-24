@@ -19,37 +19,37 @@
 }
 
 :root {
-  --bg: #ffffff;
-  --bg-panel: #f5f5f5;
-  --bg-hover: #eeeeee;
-  --bg-selected: #e8e8e8;
-  --border: #e0e0e0;
-  --text: #1a1a1a;
-  --text-muted: #6b7280;
-  --text-dim: #9ca3af;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --user-bg: #eff6ff;
-  --assistant-bg: #ffffff;
-  --tool-bg: #f9fafb;
-  --bg-subtle: rgba(0,0,0,0.03);
+  --bg: #fffbfe;
+  --bg-panel: #f3edf7;
+  --bg-hover: #f7f2fa;
+  --bg-selected: #e9ddff;
+  --border: #79747e;
+  --text: #1d1b20;
+  --text-muted: #625b71;
+  --text-dim: #79747e;
+  --accent: #6750a4;
+  --accent-hover: #7f67be;
+  --user-bg: #e9ddff;
+  --assistant-bg: #fffbfe;
+  --tool-bg: #f7f2fa;
+  --bg-subtle: rgba(103, 80, 164, 0.08);
 }
 
 html.dark {
-  --bg: #1a1a1a;
-  --bg-panel: #242424;
-  --bg-hover: #2e2e2e;
-  --bg-selected: #383838;
-  --border: #3a3a3a;
-  --text: #e8e8e8;
-  --text-muted: #9ca3af;
-  --text-dim: #6b7280;
-  --accent: #60a5fa;
-  --accent-hover: #93c5fd;
-  --user-bg: #1e293b;
-  --assistant-bg: #1a1a1a;
-  --tool-bg: #1f2937;
-  --bg-subtle: rgba(255,255,255,0.04);
+  --bg: #141218;
+  --bg-panel: #211f26;
+  --bg-hover: #2b2930;
+  --bg-selected: #4f378b;
+  --border: #938f99;
+  --text: #e6e1e5;
+  --text-muted: #cac4d0;
+  --text-dim: #938f99;
+  --accent: #d0bcff;
+  --accent-hover: #e8def8;
+  --user-bg: #4f378b;
+  --assistant-bg: #141218;
+  --tool-bg: #211f26;
+  --bg-subtle: rgba(208, 188, 255, 0.08);
 }
 
 .catppuccin-file-icon {
@@ -1549,8 +1549,8 @@ span.token.table {
   --glass-panel: transparent;
   --glass-stage: transparent;
   --glass-input: transparent;
-  --bg-hover: rgba(255, 255, 255, 0.18);
-  --bg-selected: rgba(255, 255, 255, 0.26);
+  --bg-hover: rgba(103, 80, 164, 0.12);
+  --bg-selected: rgba(103, 80, 164, 0.22);
   --border: rgba(255, 255, 255, 0.54);
   --text-muted: #aebdcd;
   --text-dim: #7b8798;
@@ -1567,8 +1567,8 @@ html.dark {
   --glass-panel: transparent;
   --glass-stage: transparent;
   --glass-input: transparent;
-  --bg-hover: rgba(14, 29, 38, 0.32);
-  --bg-selected: rgba(20, 47, 59, 0.44);
+  --bg-hover: rgba(208, 188, 255, 0.12);
+  --bg-selected: rgba(208, 188, 255, 0.22);
   --border: rgba(225, 244, 246, 0.3);
   --text-muted: #e7effa;
   --text-dim: #cbd5e1;

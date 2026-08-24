@@ -1679,7 +1679,8 @@ export function AppShell() {
         }
       }
     `}</style>
-    <div data-pi-web-app="true" style={{
+    {/* Keep ReLingo from annotating the SSR-managed application subtree before hydration. */}
+    <div data-pi-web-app="true" data-relingo-block="true" style={{
       display: "flex",
       width: "100%",
       height: "var(--app-viewport-height, 100dvh)",

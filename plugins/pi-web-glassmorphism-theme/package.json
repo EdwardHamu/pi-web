@@ -1,0 +1,20 @@
+{
+  "name": "@agegr/pi-web-glassmorphism-theme",
+  "version": "0.1.0",
+  "description": "Material 3 glassmorphism and local wallpaper theme for Pi Web.",
+  "keywords": ["pi-package", "pi-web", "theme"],
+  "license": "MIT",
+  "files": [
+    "themes",
+    "web",
+    "README.md"
+  ],
+  "pi": {
+    "themes": ["./themes/glassmorphism.json"]
+  },
+  "piWeb": {
+    "name": "Pi Web Glassmorphism",
+    "styles": ["./web/glassmorphism.css"],
+    "scripts": ["./web/glassmorphism.js"]
+  }
+}

@@ -1359,6 +1359,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
 
   return (
     <div
+      data-pi-web-composer="true"
       style={{
         flexShrink: 0,
         background: "transparent",
@@ -1529,7 +1530,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
         )}
 
         {/* Main input */}
-        <div style={{ position: "relative", minWidth: 0 }}>
+        <div data-pi-web-composer-frame="true" style={{ position: "relative", minWidth: 0 }}>
           {historyMenuOpen && inputHistory.length > 0 && (
             <div
               ref={historyMenuRef}
@@ -1866,6 +1867,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             );
           })()}
           <div
+            data-pi-web-composer-surface="true"
             style={{
               minWidth: 0,
               display: "flex",

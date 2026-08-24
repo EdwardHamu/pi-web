@@ -110,3 +110,21 @@ export interface PluginsResponse {
   diagnostics: PluginDiagnostic[];
   projectResourcesLoaded: boolean;
 }
+
+export type PiWebThemeAssetKind = "style" | "script";
+
+export interface PiWebThemeAssetInfo {
+  kind: PiWebThemeAssetKind;
+  source: string;
+  scope: PluginScope;
+  packageName: string;
+  relativePath: string;
+  url: string;
+}
+
+export interface PiWebThemesResponse {
+  styles: PiWebThemeAssetInfo[];
+  scripts: PiWebThemeAssetInfo[];
+  diagnostics: PluginDiagnostic[];
+  projectResourcesLoaded: boolean;
+}

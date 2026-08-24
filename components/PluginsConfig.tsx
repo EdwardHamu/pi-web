@@ -684,6 +684,7 @@ export function PluginsConfig({
       const next = (await res.json()) as PluginsResponse & { error?: string };
       if (!res.ok || next.error) throw new Error(next.error ?? `HTTP ${res.status}`);
       setData(next);
+      window.dispatchEvent(new Event("pi-web-plugins-changed"));
       if (action === "remove") {
         setSelected(next.packages[0] ? packageKey(next.packages[0]) : null);
         if (next.packages.length === 0) setAddMode(true);
@@ -721,6 +722,7 @@ export function PluginsConfig({
       const next = (await res.json()) as PluginsResponse & { error?: string };
       if (!res.ok || next.error) throw new Error(next.error ?? `HTTP ${res.status}`);
       setData(next);
+      window.dispatchEvent(new Event("pi-web-plugins-changed"));
       const installed = findInstalledPackage(next.packages, source, installScope);
       setSelected(installed ? packageKey(installed) : key);
       setAddMode(false);

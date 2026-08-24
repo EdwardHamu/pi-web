@@ -1,0 +1,49 @@
+name: Package Pi Web
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build npm package
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production assets
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Create npm tarball
+        run: |
+          mkdir -p artifacts
+          npm pack --pack-destination artifacts
+          ls -lh artifacts
+
+      - name: Upload npm tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: pi-web-npm-package
+          path: artifacts/*.tgz
+          if-no-files-found: error
+          retention-days: 14

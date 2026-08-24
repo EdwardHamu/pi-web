@@ -24,6 +24,7 @@
     "!.next/dev",
     "!.next/**/*.js.map",
     "public",
+    "plugins",
     "next.config.ts",
     "package.json"
   ],

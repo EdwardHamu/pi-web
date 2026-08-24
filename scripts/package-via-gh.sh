@@ -2,6 +2,8 @@
 set -Eeuo pipefail
 
 REMOTE="${REMOTE:-origin}"
+GH_REPO="${GH_REPO:-EdwardHamu/pi-web}"
+TARGET_BRANCH="${TARGET_BRANCH:-main}"
 WORKFLOW="${WORKFLOW:-package.yml}"
 ARTIFACT_NAME="${ARTIFACT_NAME:-pi-web-npm-package}"
 OUTPUT_DIR="${OUTPUT_DIR:-artifacts}"
@@ -71,7 +73,13 @@ command -v git >/dev/null 2>&1 || die "git is required"
 command -v gh >/dev/null 2>&1 || die "GitHub CLI (gh) is required"
 
 branch=$(git symbolic-ref --quiet --short HEAD) || die "current checkout is detached; switch to a branch first"
-git remote get-url "$REMOTE" >/dev/null 2>&1 || die "git remote not found: $REMOTE"
+[[ "$branch" == "$TARGET_BRANCH" ]] || die "current branch '$branch' is not target branch '$TARGET_BRANCH'"
+
+remote_url=$(git remote get-url "$REMOTE" 2>/dev/null) || die "git remote not found: $REMOTE"
+case "${remote_url%.git}" in
+  "https://github.com/$GH_REPO"|"git@github.com:$GH_REPO"|"ssh://git@github.com/$GH_REPO") ;;
+  *) die "remote '$REMOTE' points to '$remote_url', expected GitHub repository '$GH_REPO'" ;;
+esac
 
 if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
   git add -A
@@ -83,12 +91,13 @@ printf 'Pushing %s at %s to %s...\n' "$branch" "$commit_sha" "$REMOTE"
 retry git push "$REMOTE" "$branch"
 
 printf 'Triggering workflow %s on %s...\n' "$WORKFLOW" "$branch"
-retry_capture gh workflow run "$WORKFLOW" --ref "$branch"
+retry_capture gh workflow run "$WORKFLOW" --repo "$GH_REPO" --ref "$branch"
 
 run_id=""
 for ((attempt = 1; attempt <= POLL_MAX_ATTEMPTS; attempt++)); do
   run_id=$(retry_capture gh run list \
     --workflow "$WORKFLOW" \
+    --repo "$GH_REPO" \
     --branch "$branch" \
     --commit "$commit_sha" \
     --limit 1 \
@@ -107,7 +116,7 @@ done
 
 printf 'Watching workflow run %s...\n' "$run_id"
 for ((attempt = 1; attempt <= POLL_MAX_ATTEMPTS; attempt++)); do
-  state=$(retry_capture gh run view "$run_id" --json status,conclusion,url \
+  state=$(retry_capture gh run view "$run_id" --repo "$GH_REPO" --json status,conclusion,url \
     --jq '[.status, (.conclusion // ""), .url] | @tsv') || die "could not read workflow run $run_id"
   IFS=$'\t' read -r status conclusion run_url <<< "$state"
 
@@ -133,6 +142,6 @@ done
 
 mkdir -p "$OUTPUT_DIR"
 printf 'Downloading artifact %s to %s...\n' "$ARTIFACT_NAME" "$OUTPUT_DIR"
-retry gh run download "$run_id" --name "$ARTIFACT_NAME" --dir "$OUTPUT_DIR"
+retry gh run download "$run_id" --repo "$GH_REPO" --name "$ARTIFACT_NAME" --dir "$OUTPUT_DIR"
 printf 'Downloaded files:\n'
 find "$OUTPUT_DIR" -maxdepth 2 -type f -print

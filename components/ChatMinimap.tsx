@@ -601,6 +601,7 @@ export function ChatMinimap({
   return (
     <div
       ref={containerRef}
+      data-pi-web-minimap="true"
       onMouseDown={handleMouseDown}
       onMouseEnter={showPreview}
       onMouseLeave={schedulePreviewHide}
@@ -614,8 +615,9 @@ export function ChatMinimap({
         position: "relative",
         cursor: "pointer",
         userSelect: "none",
-        borderLeft: "1px solid var(--border)",
-        background: "var(--bg-panel)",
+        background: "transparent",
+        backdropFilter: "blur(10px) saturate(145%)",
+        WebkitBackdropFilter: "blur(10px) saturate(145%)",
         overflow: "visible",
       }}
     >
@@ -655,18 +657,43 @@ export function ChatMinimap({
               zIndex: 2,
             }}
           >
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 2,
-                background: isActive ? "rgba(128,128,128,0.42)" : "rgba(128,128,128,0.16)",
-                border: `1.5px solid ${isActive ? "rgba(128,128,128,0.95)" : "rgba(128,128,128,0.58)"}`,
-                boxShadow: isActive ? "0 0 0 2px var(--bg-panel)" : "none",
-                transition: "transform 0.1s, background 0.1s",
-                transform: isNearest ? "scale(1.25)" : "scale(1)",
-              }}
-            />
+            {isActive ? (
+              <svg
+                data-minimap-current-position-icon="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                focusable="false"
+                style={{
+                  color: "var(--accent)",
+                  flexShrink: 0,
+                  transform: isNearest ? "scale(1.12)" : "scale(1)",
+                  transition: "transform 0.1s",
+                }}
+              >
+                <circle cx="12" cy="12" r="5" />
+                <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+                <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+              </svg>
+            ) : (
+              <div
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  background: "rgba(128,128,128,0.16)",
+                  border: "1.5px solid rgba(128,128,128,0.58)",
+                  transition: "transform 0.1s, background 0.1s",
+                  transform: isNearest ? "scale(1.25)" : "scale(1)",
+                }}
+              />
+            )}
           </div>
         );
       })}

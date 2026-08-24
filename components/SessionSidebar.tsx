@@ -239,6 +239,7 @@ function AnimatedDropdown({ open, children, style }: { open: boolean; children: 
 
   return (
     <div
+      data-pi-web-floating-menu="true"
       style={{
         ...style,
         opacity: visible ? 1 : 0,
@@ -2078,6 +2079,8 @@ function SessionItem({
 
   return (
     <div
+      data-pi-web-session-item="true"
+      data-selected={isSelected ? "true" : undefined}
       onClick={confirmDelete || renaming ? undefined : onClick}
       onContextMenu={confirmDelete || renaming ? undefined : handleContextMenu}
       onMouseEnter={() => setHovered(true)}
@@ -2088,14 +2091,12 @@ function SessionItem({
         alignItems: "center",
         paddingLeft: depth > 0 ? depth * 12 + 14 : 14,
         paddingRight: 8,
+        margin: "0 8px",
+        borderRadius: 24,
         cursor: confirmDelete || renaming ? "default" : "pointer",
-        background: confirmDelete
-          ? "rgba(239,68,68,0.06)"
-          : isSelected ? "var(--bg-selected)" : hovered ? "var(--bg-hover)" : "transparent",
-        borderLeft: confirmDelete
-          ? "2px solid #ef4444"
-          : isSelected ? "2px solid var(--accent)" : "2px solid transparent",
-        transition: "background 0.1s",
+        background: "transparent",
+        border: "none",
+        transition: "background 0.16s, color 0.16s",
         opacity: deleting ? 0.5 : 1,
         gap: 6,
         overflow: "hidden",

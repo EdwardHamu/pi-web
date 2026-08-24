@@ -913,6 +913,7 @@ export function SkillsConfig({
       }}
     >
       <div
+        data-pi-web-floating-dialog="true"
         style={{
           width: isMobile ? "calc(100vw - 16px)" : 860,
           maxWidth: "calc(100vw - 16px)",

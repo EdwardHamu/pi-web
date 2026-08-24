@@ -36,6 +36,32 @@ pi-web
 
 To update, stop the running process with `Ctrl+C` and run the same install command again. To uninstall, run `npm uninstall -g @agegr/pi-web`.
 
+### Install the GitHub Actions Artifact
+
+The repository includes a script that pushes the current `main` branch, triggers the package workflow, and downloads the npm artifact. Run it from the repository root:
+
+```bash
+cd /path/to/pi-web
+bash scripts/package-via-gh.sh
+```
+
+The artifact is downloaded into `artifacts/`. Install it on Linux, macOS, or Git Bash with:
+
+```bash
+PACKAGE_FILE="$(find artifacts -type f -name '*.tgz' -print -quit)"
+test -n "$PACKAGE_FILE" || { echo "No .tgz artifact found in artifacts/" >&2; exit 1; }
+npm install -g "./$PACKAGE_FILE"
+pi-web --no-open
+```
+
+On Windows PowerShell:
+
+```powershell
+$package = Get-ChildItem .\artifacts -Recurse -Filter *.tgz | Select-Object -First 1
+npm install -g $package.FullName
+pi-web --no-open
+```
+
 ## Configuration
 
 For port and hostname, command-line options override the corresponding environment variables. Either `--no-open` or `PI_WEB_NO_OPEN=1` disables automatic browser opening.

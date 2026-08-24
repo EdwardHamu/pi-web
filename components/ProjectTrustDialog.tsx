@@ -38,6 +38,7 @@ export function ProjectTrustDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="project-trust-title"
+        data-pi-web-floating-dialog="true"
         style={{
           width: 440,
           maxWidth: "100%",

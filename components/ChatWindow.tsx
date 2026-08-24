@@ -425,11 +425,57 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
   const hasStreamingContent = Boolean(streamState.streamingMessage?.content.length);
   const messageCwd = session?.cwd ?? newSessionCwd ?? undefined;
   const messageContentRef = useRef<HTMLDivElement | null>(null);
+  const chatSurfaceRef = useRef<HTMLDivElement | null>(null);
+  const composerHostRef = useRef<HTMLDivElement | null>(null);
   const promptAnchorSpacerRef = useRef<HTMLDivElement | null>(null);
   const promptAnchorSpacerHeightRef = useRef(0);
   const promptAnchorMeasureFrameRef = useRef<number | null>(null);
   const promptAnchorAdjustmentDoneRef = useRef(false);
   const promptAnchorUpdateRef = useRef<(() => void) | null>(null);
+
+  useLayoutEffect(() => {
+    const chatSurface = chatSurfaceRef.current;
+    const scrollContainer = scrollContainerRef.current;
+    const messageColumn = messageContentRef.current;
+    const composerHost = composerHostRef.current;
+    if (!chatSurface || !scrollContainer || !messageColumn || !composerHost) return;
+
+    let frame: number | null = null;
+    const updateFloatingLayout = () => {
+      frame = null;
+      const columnRect = messageColumn.getBoundingClientRect();
+      const scrollRect = scrollContainer.getBoundingClientRect();
+      const composerRect = composerHost.getBoundingClientRect();
+
+      chatSurface.style.setProperty("--pi-web-message-column-left", `${columnRect.left}px`);
+      chatSurface.style.setProperty("--pi-web-message-column-width", `${columnRect.width}px`);
+      chatSurface.style.setProperty("--pi-web-message-glass-top", `${scrollRect.top}px`);
+      chatSurface.style.setProperty("--pi-web-composer-height", `${composerRect.height}px`);
+    };
+    const scheduleFloatingLayoutUpdate = () => {
+      if (frame !== null) return;
+      frame = requestAnimationFrame(updateFloatingLayout);
+    };
+
+    updateFloatingLayout();
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(scheduleFloatingLayoutUpdate);
+    observer?.observe(chatSurface);
+    observer?.observe(scrollContainer);
+    observer?.observe(composerHost);
+    window.addEventListener("resize", scheduleFloatingLayoutUpdate);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", scheduleFloatingLayoutUpdate);
+      if (frame !== null) cancelAnimationFrame(frame);
+      chatSurface.style.removeProperty("--pi-web-message-column-left");
+      chatSurface.style.removeProperty("--pi-web-message-column-width");
+      chatSurface.style.removeProperty("--pi-web-message-glass-top");
+      chatSurface.style.removeProperty("--pi-web-composer-height");
+    };
+  }, [error, isEmptyNew, loading, scrollContainerRef, session?.id]);
 
   useLayoutEffect(() => {
     const spacer = promptAnchorSpacerRef.current;
@@ -593,9 +639,13 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
 
   return (
     <div
+      ref={chatSurfaceRef}
       data-pi-web-chat="true"
       className="relative flex h-full min-w-0 flex-col overflow-hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom)",
+        background: "transparent",
+      }}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -614,7 +664,6 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
           </div>
           <svg
             width="280" height="280" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg"
-            className="drop-shadow-[0_6px_18px_rgba(37,99,235,0.18)]"
           >
             <rect x="28" y="44" width="84" height="60" rx="8" fill="rgba(37,99,235,0.08)" stroke="rgba(37,99,235,0.50)" strokeWidth="1.8"/>
             <path d="M36 100 L54 72 L68 88 L80 74 L104 100Z" fill="rgba(37,99,235,0.16)" stroke="rgba(37,99,235,0.40)" strokeWidth="1.4" strokeLinejoin="round"/>
@@ -698,7 +747,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
         </div>
       ) : (
       <>
-      <div className="relative flex min-w-0 flex-1 overflow-hidden">
+      <div className="absolute inset-0 flex min-w-0 overflow-hidden">
         <div ref={scrollContainerRef} data-pi-web-chat-scroll="true" className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pt-4 [scrollbar-width:none]">
           <div style={{ minWidth: 0, padding: `0 ${CHAT_COLUMN_PADDING}px` }}>
             <div ref={messageContentRef} data-pi-web-message-column="true" style={{ width: "100%", minWidth: 0, maxWidth: 820, margin: "0 auto" }}>
@@ -933,7 +982,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
         )}
       </div>
 
-      <div data-pi-web-composer-host="true" className="relative">
+      <div ref={composerHostRef} data-pi-web-composer-host="true" className="relative z-10 mt-auto">
         {chatInputElement}
         <ExtensionStatusBar statuses={extensionStatuses} widgets={extensionWidgets} />
       </div>
@@ -1052,6 +1101,7 @@ function ExtensionDialog({
       <div
         role="dialog"
         aria-modal="true"
+        data-pi-web-floating-dialog="true"
         style={{
           width: "min(560px, 100%)",
           border: "1px solid var(--border)",
@@ -1233,6 +1283,7 @@ function ExtensionCustomPanel({
       <div
         role="dialog"
         aria-modal="true"
+        data-pi-web-floating-dialog="true"
         onClick={(event) => {
           if (!(event.target as HTMLElement).closest("button")) inputRef.current?.focus();
         }}

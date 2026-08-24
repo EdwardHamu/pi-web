@@ -38,6 +38,32 @@ pi-web
 
 更新前先用 `Ctrl+C` 停止正在运行的进程，再次执行同一条安装命令。卸载时运行 `npm uninstall -g @agegr/pi-web`。
 
+### 安装 GitHub Actions 构建产物
+
+仓库提供了一个脚本，可以推送当前 `main` 分支、触发打包 workflow，并下载 npm artifact。请从仓库根目录执行：
+
+```bash
+cd /path/to/pi-web
+bash scripts/package-via-gh.sh
+```
+
+脚本会把产物下载到 `artifacts/`。下载完成后，在 Linux、macOS 或 Git Bash 中安装：
+
+```bash
+PACKAGE_FILE="$(find artifacts -type f -name '*.tgz' -print -quit)"
+test -n "$PACKAGE_FILE" || { echo "No .tgz artifact found in artifacts/" >&2; exit 1; }
+npm install -g "./$PACKAGE_FILE"
+pi-web --no-open
+```
+
+Windows PowerShell 中可以这样安装：
+
+```powershell
+$package = Get-ChildItem .\artifacts -Recurse -Filter *.tgz | Select-Object -First 1
+npm install -g $package.FullName
+pi-web --no-open
+```
+
 ## 配置
 
 端口和主机名以命令行参数为准，优先于对应的环境变量。`--no-open` 与 `PI_WEB_NO_OPEN=1` 中任意一个都会关闭自动打开浏览器。

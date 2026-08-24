@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGlobalKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { SessionSidebar } from "./SessionSidebar";
@@ -11,10 +12,12 @@ import { openFileTab, saveFileViewerState } from "./file-tab-state";
 import { ModelsConfig } from "./ModelsConfig";
 import { SkillsConfig } from "./SkillsConfig";
 import { PluginsConfig } from "./PluginsConfig";
+import { WallpaperSettings } from "./WallpaperSettings";
 import { WebPluginLoader } from "./WebPluginLoader";
 import { ProjectTrustDialog } from "./ProjectTrustDialog";
 import { BranchNavigator } from "./BranchNavigator";
 import { useTheme } from "@/hooks/useTheme";
+import { useWallpaper } from "@/hooks/useWallpaper";
 import { useI18n } from "@/hooks/useI18n";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
@@ -67,6 +70,7 @@ export function AppShell() {
   const searchParams = useSearchParams();
   const [initialNavigation] = useState(() => getInitialNavigation(searchParams));
   const { preference, toggleTheme } = useTheme();
+  const wallpaper = useWallpaper();
   const themeLabelKey =
     preference === "light" ? "theme.light" : preference === "dark" ? "theme.dark" : "theme.auto";
   const { locale, setLocale, t: translate, supportedLocales } = useI18n();
@@ -103,6 +107,7 @@ export function AppShell() {
   const [modelsRefreshKey, setModelsRefreshKey] = useState(0);
   const [skillsConfigOpen, setSkillsConfigOpen] = useState(false);
   const [pluginsConfigOpen, setPluginsConfigOpen] = useState(false);
+  const [wallpaperSettingsOpen, setWallpaperSettingsOpen] = useState(false);
   const [projectTrust, setProjectTrust] = useState<ProjectTrustStatus | null>(null);
   const [projectTrustDialogOpen, setProjectTrustDialogOpen] = useState(false);
   const [projectTrustBusy, setProjectTrustBusy] = useState(false);
@@ -1079,6 +1084,36 @@ export function AppShell() {
     </button>
   );
 
+  const renderWallpaperButton = (mobile: boolean) => (
+    <button
+      type="button"
+      onClick={() => {
+        setWallpaperSettingsOpen(true);
+        if (mobile) {
+          setSidebarOpen(false);
+          setMobileToolbarMoreOpen(true);
+        }
+      }}
+      title={translate("wallpaper.title")}
+      aria-label={translate("wallpaper.title")}
+      data-mobile-toolbar-action={mobile ? "wallpaper" : undefined}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        width: TOP_BAR_ICON_BUTTON_SIZE, height: TOP_BAR_ICON_BUTTON_SIZE, padding: 0,
+        background: "none", border: "none", borderRight: "1px solid var(--border)",
+        color: "var(--text-muted)", cursor: "pointer", flexShrink: 0, transition: "color 0.12s",
+      }}
+      onMouseEnter={(event) => { event.currentTarget.style.color = "var(--text)"; }}
+      onMouseLeave={(event) => { event.currentTarget.style.color = "var(--text-muted)"; }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <path d="m21 15-5-5L5 21" />
+      </svg>
+    </button>
+  );
+
   const renderProjectTrustWarning = (mobileBanner: boolean) => {
     if (!showChat || !projectTrust?.requiresTrust || projectTrust.trusted) return null;
     return (
@@ -1354,6 +1389,7 @@ export function AppShell() {
         </button>
         {mobile && renderThemeButton(true)}
         {mobile && renderLanguageButton(true)}
+        {mobile && renderWallpaperButton(true)}
       </div>
     );
   };
@@ -1650,8 +1686,14 @@ export function AppShell() {
       paddingLeft: "env(safe-area-inset-left)",
       paddingRight: "env(safe-area-inset-right)",
       overflow: "hidden",
-      background: "var(--bg)",
-    }}>
+      background: "transparent",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      backgroundSize: "cover",
+      backgroundAttachment: "fixed",
+      "--pi-web-wallpaper-image": `url(${JSON.stringify(wallpaper.imageUrl)})`,
+      "--pi-web-wallpaper-overlay": String(wallpaper.overlay / 100),
+    } as React.CSSProperties}>
       {/* Mobile overlay backdrop */}
       <div
         className={`sidebar-overlay-backdrop${mobileSidebarReady ? "" : " sidebar-mobile-pending"}`}
@@ -1677,11 +1719,16 @@ export function AppShell() {
           "--sidebar-width": `${sidebarResizer.width}px`,
           background: "var(--bg-panel)",
           borderRight: "1px solid var(--border)",
+          backdropFilter: "blur(10px) saturate(145%)",
+          WebkitBackdropFilter: "blur(10px) saturate(145%)",
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
           paddingTop: "env(safe-area-inset-top)",
           paddingBottom: "env(safe-area-inset-bottom)",
+          transform: isMobile && !sidebarOpen
+            ? "translateX(calc(-100% - 12px - env(safe-area-inset-left)))"
+            : undefined,
           zIndex: 200,
         } as React.CSSProperties}
       >
@@ -1700,7 +1747,12 @@ export function AppShell() {
       {/* Center: chat */}
       <div data-pi-web-center="true" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
         {/* Top bar with sidebar toggle */}
-        <div ref={topBarRef} data-pi-web-topbar="true" style={{ flexShrink: 0, background: "var(--bg-panel)" }}>
+        <div ref={topBarRef} data-pi-web-topbar="true" style={{
+          flexShrink: 0,
+          background: "var(--bg-panel)",
+          backdropFilter: "blur(10px) saturate(145%)",
+          WebkitBackdropFilter: "blur(10px) saturate(145%)",
+        }}>
         <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)" }}>
           <button
             onClick={handleSidebarToggle}
@@ -1775,6 +1827,7 @@ export function AppShell() {
                   role="toolbar"
                   aria-label={translate("chat.moreControls")}
                   data-mobile-toolbar-actions="true"
+                  data-pi-web-floating-menu="true"
                   style={{
                     position: "absolute",
                     top: 0,
@@ -1798,6 +1851,7 @@ export function AppShell() {
             <>
               {renderThemeButton(false)}
               {renderLanguageButton(false)}
+              {renderWallpaperButton(false)}
               {renderProjectTrustWarning(false)}
               {renderChatToolbarActions(false)}
               {renderSessionStatsButton(false)}
@@ -1819,8 +1873,8 @@ export function AppShell() {
             />
           )}
           {/* Top panel dropdown — shared, only one active at a time */}
-          {activeTopPanel && topPanelPos && (
-            <div style={{
+          {activeTopPanel && topPanelPos && typeof document !== "undefined" && createPortal(
+            <div data-pi-web-floating-menu="true" style={{
               position: "fixed",
               top: topPanelPos.top,
               left: topPanelPos.left,
@@ -2071,7 +2125,8 @@ export function AppShell() {
                   )}
                 </div>
               )}
-            </div>
+            </div>,
+            document.body,
           )}
 
         </div>
@@ -2079,7 +2134,12 @@ export function AppShell() {
         </div>
 
         {/* Chat content */}
-        <div data-pi-web-content="true" style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        <div data-pi-web-content="true" style={{
+          flex: 1,
+          overflow: "hidden",
+          position: "relative",
+          background: "transparent",
+        }}>
           {showChat ? (
             <ChatWindow
               key={sessionKey}
@@ -2161,6 +2221,7 @@ export function AppShell() {
           className={`panel-resize-handle right-panel-resize-handle${rightPanelResizer.isResizing ? " is-resizing" : ""}`}
           data-resize-handle="right-panel"
           title={`${translate("layout.resizeFilePanel")}: ${translate("layout.resizeHint")}`}
+          style={{ "--right-panel-width": `${rightPanelResizer.width}px` } as React.CSSProperties}
         />
       )}
 
@@ -2251,6 +2312,11 @@ export function AppShell() {
         </div>
       </div>
     </div>
+    <WallpaperSettings
+      open={wallpaperSettingsOpen}
+      wallpaper={wallpaper}
+      onClose={() => setWallpaperSettingsOpen(false)}
+    />
     {modelsConfigOpen && <ModelsConfig onClose={() => { setModelsConfigOpen(false); setModelsRefreshKey((k) => k + 1); }} />}
     {projectTrustDialogOpen && projectTrustCwd && (
       <ProjectTrustDialog

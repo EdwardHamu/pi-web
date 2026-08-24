@@ -316,6 +316,9 @@ button.extension-widget-trigger:focus-visible {
   min-width: 0;
   height: 35px;
   padding: 0 12px;
+  background: transparent !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
 }
 
 .extension-status-text {
@@ -1019,6 +1022,114 @@ pre, code {
   }
 }
 
+/* Frosted glass shell. Keep the application surfaces translucent while the
+   page background provides the depth needed for the blur to read clearly. */
+:root {
+  --bg: rgba(248, 252, 253, 0.34);
+  --bg-panel: rgba(248, 252, 253, 0.56);
+  --bg-hover: rgba(255, 255, 255, 0.76);
+  --bg-selected: rgba(224, 239, 247, 0.78);
+  --border: rgba(255, 255, 255, 0.72);
+  --user-bg: rgba(211, 233, 246, 0.58);
+  --assistant-bg: rgba(255, 255, 255, 0.32);
+  --tool-bg: rgba(230, 241, 237, 0.56);
+  --bg-subtle: rgba(255, 255, 255, 0.32);
+  --glass-panel: rgba(248, 252, 253, 0.52);
+  --glass-stage: rgba(243, 249, 251, 0.24);
+  --glass-input: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 12px 32px rgba(51, 79, 92, 0.1);
+}
+
+html.dark {
+  --bg: rgba(14, 27, 35, 0.4);
+  --bg-panel: rgba(18, 35, 45, 0.62);
+  --bg-hover: rgba(42, 64, 74, 0.72);
+  --bg-selected: rgba(49, 82, 94, 0.76);
+  --border: rgba(172, 210, 220, 0.18);
+  --user-bg: rgba(29, 65, 85, 0.58);
+  --assistant-bg: rgba(18, 35, 45, 0.36);
+  --tool-bg: rgba(31, 66, 62, 0.54);
+  --bg-subtle: rgba(183, 220, 225, 0.08);
+  --glass-panel: rgba(18, 35, 45, 0.6);
+  --glass-stage: rgba(12, 26, 35, 0.25);
+  --glass-input: rgba(27, 49, 59, 0.62);
+  --glass-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
+}
+
+html,
+body {
+  background: linear-gradient(135deg, #d9e8ed 0%, #e8eee4 50%, #eae5ef 100%);
+  background-attachment: fixed;
+}
+
+html.dark,
+html.dark body {
+  background: linear-gradient(135deg, #0b1821 0%, #142721 50%, #202033 100%);
+  background-attachment: fixed;
+}
+
+[data-pi-web-app="true"] {
+  background: transparent !important;
+}
+
+[data-pi-web-sidebar="true"],
+[data-pi-web-topbar="true"],
+[data-pi-web-right-panel="true"] {
+  background: var(--glass-panel) !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(10px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+}
+
+[data-pi-web-sidebar="true"] {
+  border-right-color: var(--border) !important;
+}
+
+[data-pi-web-topbar="true"] > div {
+  border-bottom-color: var(--border) !important;
+}
+
+[data-pi-web-content="true"],
+[data-pi-web-chat="true"] {
+  background: var(--glass-stage) !important;
+}
+
+[data-pi-web-content="true"] {
+  backdrop-filter: blur(12px) saturate(125%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(125%) !important;
+}
+
+[data-pi-web-chat-scroll="true"] {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+html.dark [data-pi-web-chat-scroll="true"] {
+  background: rgba(6, 16, 22, 0.08);
+}
+
+[data-pi-web-composer="true"] {
+  background: transparent !important;
+}
+
+[data-pi-web-composer-surface="true"] {
+  background: var(--glass-input) !important;
+  border-color: color-mix(in srgb, var(--border) 85%, transparent) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.3) inset, var(--glass-shadow) !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+}
+
+[data-pi-web-composer-surface="true"] textarea {
+  background: transparent !important;
+}
+
+.sidebar-overlay-backdrop,
+.right-panel-overlay-backdrop {
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
 @media (max-width: 380px) {
   .file-viewer-toolbar {
     gap: 6px !important;
@@ -1276,30 +1387,41 @@ span.token.table {
   }
 }
 
-/* Wide desktop file panel: participate in the split layout. */
+/* Wide desktop file panel: float above the chat instead of consuming its width. */
 @media (min-width: 960px) {
   .right-panel-container {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 60px);
+    right: calc(env(safe-area-inset-right) + 12px);
+    bottom: calc(env(safe-area-inset-bottom) + 12px);
+    z-index: 250;
+    width: var(--right-panel-width, clamp(360px, 42vw, 640px));
+    max-width: calc(100vw - 48px);
+    min-width: 300px;
     overflow: hidden;
-    transition: width 0.2s ease, min-width 0.2s ease;
-    flex-shrink: 0;
+    border-radius: 8px;
+    transition: transform 0.2s ease;
   }
   .right-panel-container.right-panel-open {
-    width: var(--right-panel-width, clamp(360px, 42vw, 640px));
-    min-width: 300px;
+    transform: translateX(0);
   }
   .right-panel-container.right-panel-closed {
-    width: 0;
-    min-width: 0;
-    border-left: none !important;
+    transform: translateX(calc(100% + 12px));
+    pointer-events: none;
   }
-  /* keep inner content at fixed width so it doesn't reflow during animation */
   .right-panel-container > * {
-    width: var(--right-panel-width, clamp(360px, 42vw, 640px));
-    min-width: 300px;
+    width: 100%;
+    min-width: 0;
   }
-  .right-panel-container.right-panel-resizing,
-  .right-panel-container.right-panel-resizing > * {
-    transition: none !important;
+  .right-panel-resize-handle {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 60px);
+    right: calc(env(safe-area-inset-right) + var(--right-panel-width, 420px) + 6px);
+    bottom: calc(env(safe-area-inset-bottom) + 12px);
+    z-index: 260;
+    height: auto;
+    margin: 0;
+    flex: none;
   }
 }
 
@@ -1413,5 +1535,312 @@ span.token.table {
   input,
   select {
     font-size: 16px !important;
+  }
+}
+
+/* Full-window wallpaper with transparent glass surfaces. */
+:root {
+  --bg: transparent;
+  --bg-panel: transparent;
+  --user-bg: transparent;
+  --assistant-bg: transparent;
+  --tool-bg: transparent;
+  --bg-subtle: transparent;
+  --glass-panel: transparent;
+  --glass-stage: transparent;
+  --glass-input: transparent;
+  --bg-hover: rgba(255, 255, 255, 0.18);
+  --bg-selected: rgba(255, 255, 255, 0.26);
+  --border: rgba(255, 255, 255, 0.54);
+  --text-muted: #aebdcd;
+  --text-dim: #7b8798;
+  --glass-shadow: none;
+}
+
+html.dark {
+  --bg: transparent;
+  --bg-panel: transparent;
+  --user-bg: transparent;
+  --assistant-bg: transparent;
+  --tool-bg: transparent;
+  --bg-subtle: transparent;
+  --glass-panel: transparent;
+  --glass-stage: transparent;
+  --glass-input: transparent;
+  --bg-hover: rgba(14, 29, 38, 0.32);
+  --bg-selected: rgba(20, 47, 59, 0.44);
+  --border: rgba(225, 244, 246, 0.3);
+  --text-muted: #e7effa;
+  --text-dim: #cbd5e1;
+  --glass-shadow: none;
+}
+
+html,
+body {
+  background: transparent !important;
+}
+
+html.dark,
+html.dark body {
+  background: transparent !important;
+}
+
+[data-pi-web-app="true"] {
+  --pi-web-wallpaper-image: url("/misty-lake-wallpaper.png");
+  --pi-web-wallpaper-overlay: 0.34;
+  position: relative;
+  z-index: 1;
+  background-color: transparent !important;
+  background-image: url("/misty-lake-wallpaper.png") !important;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+html body [data-pi-web-app="true"] {
+  background-color: transparent !important;
+  background-image:
+    linear-gradient(
+      rgba(5, 12, 20, var(--pi-web-wallpaper-overlay)),
+      rgba(5, 12, 20, var(--pi-web-wallpaper-overlay))
+    ),
+    var(--pi-web-wallpaper-image) !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: cover, cover !important;
+  background-attachment: fixed, fixed !important;
+}
+
+[data-pi-web-app="true"],
+[data-pi-web-sidebar="true"],
+[data-pi-web-topbar="true"],
+[data-pi-web-right-panel="true"],
+[data-pi-web-content="true"],
+[data-pi-web-chat="true"],
+[data-pi-web-chat-scroll="true"],
+[data-pi-web-composer="true"],
+[data-pi-web-composer-surface="true"] {
+  background: transparent !important;
+}
+
+[data-pi-web-sidebar="true"],
+[data-pi-web-topbar="true"],
+[data-pi-web-right-panel="true"] {
+  border-color: var(--border) !important;
+  box-shadow: var(--glass-shadow);
+}
+
+[data-pi-web-composer-surface="true"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-pi-web-app="true"],
+[data-pi-web-app="true"] *,
+[data-pi-web-app="true"] *::before,
+[data-pi-web-app="true"] *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+[data-pi-web-app="true"] [class*="drop-shadow"] {
+  filter: none !important;
+}
+
+[data-pi-web-sidebar="true"],
+[data-pi-web-topbar="true"],
+[data-pi-web-right-panel="true"],
+[data-pi-web-composer-surface="true"],
+[data-pi-web-sidebar="true"]::before,
+[data-pi-web-topbar="true"]::before,
+[data-pi-web-right-panel="true"]::before,
+[data-pi-web-composer-surface="true"]::before {
+  backdrop-filter: blur(10px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+}
+
+/* The navigation chrome stays visually weightless; blur, borders, and shadows
+   provide the glass hierarchy without filling any of its internal regions. */
+[data-pi-web-sidebar="true"],
+[data-pi-web-sidebar="true"] *,
+[data-pi-web-sidebar="true"] *::before,
+[data-pi-web-sidebar="true"] *::after,
+[data-pi-web-topbar="true"],
+[data-pi-web-topbar="true"] *,
+[data-pi-web-topbar="true"] *::before,
+[data-pi-web-topbar="true"] *::after {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* The glassmorphism plugin paints its surface on the root pseudo-elements,
+   so descendant-only overrides cannot make these panels genuinely transparent. */
+[data-pi-web-sidebar="true"]::before,
+[data-pi-web-sidebar="true"]::after,
+[data-pi-web-topbar="true"]::before,
+[data-pi-web-topbar="true"]::after,
+[data-pi-web-composer-surface="true"]::before,
+[data-pi-web-composer-surface="true"]::after {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+[data-pi-web-topbar="true"] {
+  border: 1px solid var(--border) !important;
+  border-radius: 12px;
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;
+}
+
+[data-pi-web-topbar="true"] > div {
+  border-bottom: none !important;
+}
+
+[data-pi-web-wallpaper-settings="true"] {
+  background: transparent !important;
+}
+
+[data-pi-web-wallpaper-settings-panel="true"] {
+  background: transparent !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+}
+
+[data-pi-web-wallpaper-settings-panel="true"] button:hover {
+  color: var(--text) !important;
+  border-color: var(--text-muted) !important;
+}
+
+[data-pi-web-wallpaper-overlay="true"] {
+  height: 16px;
+  cursor: pointer;
+}
+
+[data-pi-web-content="true"],
+[data-pi-web-chat="true"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (min-width: 641px) {
+  [data-pi-web-topbar="true"] {
+    width: auto;
+    align-self: stretch;
+    margin: 12px 12px 0;
+  }
+
+  [data-pi-web-sidebar="true"].sidebar-open {
+    height: calc(var(--app-viewport-height, 100dvh) - 24px);
+    margin: 12px 0 12px 12px;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px;
+  }
+
+  [data-pi-web-sidebar="true"].sidebar-closed {
+    margin-left: 0;
+  }
+}
+
+/* Keep the wallpaper visible through every application surface. Repeating the
+   root selector keeps this reset ahead of component-level !important rules. */
+[data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"],
+[data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] *,
+[data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] *::before,
+[data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] *::after {
+  border: none !important;
+}
+
+/* Material Design 3 uses a rounded state layer instead of an active-row border. */
+[data-pi-web-sidebar="true"] [data-pi-web-session-item="true"] {
+  position: relative;
+}
+
+[data-pi-web-sidebar="true"] [data-pi-web-session-item="true"]:hover {
+  background: color-mix(in srgb, var(--accent) 9%, transparent) !important;
+}
+
+[data-pi-web-sidebar="true"] [data-pi-web-session-item="true"][data-selected="true"] {
+  background: color-mix(in srgb, var(--accent) 24%, transparent) !important;
+  color: var(--text);
+}
+
+/* The message column owns one viewport-sized glass layer rather than a layer
+   as tall as the full message history. */
+[data-pi-web-message-column="true"] {
+  position: relative;
+  isolation: isolate;
+  min-height: calc(var(--app-viewport-height, 100dvh) - 132px);
+}
+
+[data-pi-web-message-column="true"]::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  top: var(--pi-web-message-glass-top, 0px);
+  right: auto;
+  bottom: 0;
+  left: calc(var(--pi-web-message-column-left, 0px) - 10px);
+  width: calc(var(--pi-web-message-column-width, 0px) + 20px);
+  pointer-events: none;
+  background: transparent !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%);
+  backdrop-filter: blur(10px) saturate(145%);
+}
+
+[data-pi-web-chat-scroll="true"] {
+  height: 100%;
+  padding-bottom: calc(var(--pi-web-composer-height, 112px) + 16px) !important;
+  scroll-padding-bottom: calc(var(--pi-web-composer-height, 112px) + 16px);
+}
+
+/* Full-screen settings and the file panel use the same transparent glass. */
+[data-pi-web-wallpaper-settings="true"],
+[data-pi-web-right-panel="true"] {
+  background: transparent !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
+}
+
+[data-pi-web-floating-menu="true"],
+[data-pi-web-floating-dialog="true"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+[data-pi-web-wallpaper-settings="true"],
+[data-pi-web-wallpaper-settings="true"] *,
+[data-pi-web-wallpaper-settings="true"] *::before,
+[data-pi-web-wallpaper-settings="true"] *::after {
+  border: none !important;
+}
+
+[data-pi-web-minimap="true"] {
+  background: transparent !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+}
+
+@media (max-width: 640px) {
+  [data-pi-web-topbar="true"] {
+    margin: 8px 12px 0;
+  }
+
+  [data-pi-web-sidebar="true"] {
+    top: calc(env(safe-area-inset-top) + 12px);
+    left: calc(env(safe-area-inset-left) + 12px);
+    bottom: calc(env(safe-area-inset-bottom) + 12px);
+    height: calc(var(--app-viewport-height, 100dvh) - 24px);
+    border: 1px solid var(--border) !important;
+    border-radius: 12px;
+  }
+
+  [data-pi-web-sidebar="true"].sidebar-closed {
+    transform: translateX(calc(-100% - 12px - env(safe-area-inset-left)));
   }
 }

@@ -1534,6 +1534,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
           {historyMenuOpen && inputHistory.length > 0 && (
             <div
               data-pi-web-floating-menu="true"
+              data-pi-web-glass="true"
               ref={historyMenuRef}
               style={{
                 position: "absolute",
@@ -1622,6 +1623,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
           {slashMenuOpen && slashQuery !== null && (
             <div
               data-pi-web-floating-menu="true"
+              data-pi-web-glass="true"
               ref={slashMenuRef}
               style={{
                 position: "absolute",
@@ -1782,6 +1784,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             return (
               <div
                 data-pi-web-floating-menu="true"
+                data-pi-web-glass="true"
                 style={{
                   position: "absolute",
                   left: 0,
@@ -2289,7 +2292,10 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 {t("chat.moreControls")}
               </button>
             )}
-            <div data-pi-web-floating-menu="true" style={{
+            <div
+              data-pi-web-floating-menu="true"
+              data-pi-web-glass={isMobile ? "true" : undefined}
+              style={{
               display: isMobile ? (controlsMenuOpen ? "flex" : "none") : "flex",
               alignItems: "center",
               gap: isMobile ? 1 : 2,
@@ -2309,7 +2315,8 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
                 backdropFilter: "blur(10px)",
               } : null),
-            }}>
+              }}
+            >
             {!isStreaming && onThinkingLevelChange && (
               <div ref={thinkingDropdownRef} style={{ position: "relative" }}>
                 <button
@@ -2349,7 +2356,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   {(!isMobile || controlsMenuOpen) && <span style={{ whiteSpace: "nowrap" }}>{thinkingDisplayLabel}</span>}
                 </button>
                 {thinkingDropdownOpen && (
-                  <div data-pi-web-floating-menu="true" style={{
+                  <div data-pi-web-floating-menu="true" data-pi-web-glass="true" style={{
                     position: "absolute", bottom: "calc(100% + 6px)",
                     ...(isMobile ? { left: 0 } : { right: 0 }),
                     zIndex: 100, background: "var(--bg)", border: "1px solid var(--border)",
@@ -2435,7 +2442,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   {(!isMobile || controlsMenuOpen) && <span style={{ whiteSpace: "nowrap" }}>{toolPresetLabel}</span>}
                 </button>
                 {toolDropdownOpen && (
-                  <div data-pi-web-floating-menu="true" style={{
+                  <div data-pi-web-floating-menu="true" data-pi-web-glass="true" style={{
                     position: "absolute",
                     bottom: "calc(100% + 6px)",
                     right: isMobile ? undefined : 0,

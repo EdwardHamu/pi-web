@@ -1807,10 +1807,16 @@ html body [data-pi-web-app="true"] {
 [data-pi-web-floating-dialog="true"] {
   background: transparent !important;
   background-color: transparent !important;
-  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
-  backdrop-filter: blur(10px) saturate(145%) !important;
   border: none !important;
   box-shadow: none !important;
+}
+
+/* Only menus that float from a positioned anchor blur the wallpaper below.
+   Fixed and inline controls stay transparent without creating another glass layer. */
+[data-pi-web-floating-menu="true"][data-pi-web-glass="true"],
+[data-pi-web-floating-dialog="true"] {
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
 }
 
 [data-pi-web-wallpaper-settings="true"],

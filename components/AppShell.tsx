@@ -1829,6 +1829,7 @@ export function AppShell() {
                   aria-label={translate("chat.moreControls")}
                   data-mobile-toolbar-actions="true"
                   data-pi-web-floating-menu="true"
+                  data-pi-web-glass="true"
                   style={{
                     position: "absolute",
                     top: 0,

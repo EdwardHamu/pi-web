@@ -394,7 +394,7 @@ export function BranchNavigator({ tree, activeLeafId, onLeafChange, inline, cont
 
       {/* Tree panel - overlay */}
       {open && (
-        <div data-pi-web-floating-menu="true" style={{
+        <div data-pi-web-floating-menu="true" data-pi-web-glass="true" style={{
           position: "absolute",
           top: "100%",
           left: 0,

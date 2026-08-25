@@ -240,6 +240,7 @@ function AnimatedDropdown({ open, children, style }: { open: boolean; children: 
   return (
     <div
       data-pi-web-floating-menu="true"
+      data-pi-web-glass={style.position === "absolute" ? "true" : undefined}
       style={{
         ...style,
         opacity: visible ? 1 : 0,

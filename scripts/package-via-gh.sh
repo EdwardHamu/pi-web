@@ -18,6 +18,37 @@ die() {
   exit 1
 }
 
+notify_completion() {
+  local title='Pi Web'
+  local message='Packaging completed successfully.'
+
+  # Git Bash on Windows: show a visible completion dialog without requiring
+  # an additional notification package.
+  if command -v powershell.exe >/dev/null 2>&1; then
+    if powershell.exe -Command \
+      "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('$message', '$title', 'OK', 'Information') | Out-Null" \
+      >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+
+  if command -v notify-send >/dev/null 2>&1; then
+    if notify-send "$title" "$message"; then
+      return 0
+    fi
+  fi
+
+  if command -v osascript >/dev/null 2>&1; then
+    if osascript -e "display notification \"$message\" with title \"$title\""; then
+      return 0
+    fi
+  fi
+
+  # Keep the completion signal useful on terminals without a desktop
+  # notification service.
+  printf '\a%s %s\n' "$title:" "$message"
+}
+
 [[ "$MAX_RETRIES" =~ ^[1-9][0-9]*$ ]] || die "MAX_RETRIES must be a positive integer"
 [[ "$RETRY_DELAY_SECONDS" =~ ^[0-9]+$ ]] || die "RETRY_DELAY_SECONDS must be a non-negative integer"
 [[ "$POLL_INTERVAL_SECONDS" =~ ^[0-9]+$ ]] || die "POLL_INTERVAL_SECONDS must be a non-negative integer"
@@ -150,3 +181,4 @@ printf 'Downloading artifact %s to %s...\n' "$ARTIFACT_NAME" "$OUTPUT_DIR"
 retry gh run download "$run_id" --repo "$GH_REPO" --name "$ARTIFACT_NAME" --dir "$OUTPUT_DIR"
 printf 'Downloaded files:\n'
 find "$OUTPUT_DIR" -maxdepth 2 -type f -print
+notify_completion

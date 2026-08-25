@@ -1726,7 +1726,7 @@ export function AppShell() {
           paddingTop: "env(safe-area-inset-top)",
           paddingBottom: "env(safe-area-inset-bottom)",
           transform: isMobile && !sidebarOpen
-            ? "translateX(calc(-100% - 12px - env(safe-area-inset-left)))"
+            ? "translateX(calc(-100% - env(safe-area-inset-left)))"
             : undefined,
           zIndex: 200,
         } as React.CSSProperties}
@@ -1748,9 +1748,6 @@ export function AppShell() {
         {/* Top bar with sidebar toggle */}
         <div ref={topBarRef} data-pi-web-topbar="true" style={{
           flexShrink: 0,
-          background: "var(--bg-panel)",
-          backdropFilter: "blur(10px) saturate(145%)",
-          WebkitBackdropFilter: "blur(10px) saturate(145%)",
         }}>
         <div style={{ display: "flex", alignItems: "center", position: "relative", borderBottom: "1px solid var(--border)", height: "calc(36px + env(safe-area-inset-top))", paddingTop: "env(safe-area-inset-top)" }}>
           <button
@@ -1874,7 +1871,7 @@ export function AppShell() {
           )}
           {/* Top panel dropdown — shared, only one active at a time */}
           {activeTopPanel && topPanelPos && typeof document !== "undefined" && createPortal(
-            <div data-pi-web-floating-menu="true" style={{
+            <div data-pi-web-floating-menu="true" data-pi-web-glass="true" style={{
               position: "fixed",
               top: topPanelPos.top,
               left: topPanelPos.left,

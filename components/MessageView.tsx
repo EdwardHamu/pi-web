@@ -375,8 +375,8 @@ function UserMessageView({ message, cwd, onOpenFile, entryId, onFork, forking, o
           style={{
             flex: 1,
             minWidth: 0,
-            background: "var(--user-bg)",
-            border: "1px solid rgba(59,130,246,0.2)",
+            background: "rgba(103,80,164,0.3)",
+            border: "1px solid rgba(103,80,164,0.3)",
             borderRadius: 12,
             padding: "8px 12px",
             fontSize: 14,
@@ -972,7 +972,7 @@ function ToolCallBlock({ block, result, duration }: { block: ToolCallContent; re
         overflow: "hidden",
         fontSize: 12,
         border: isError ? "1px solid rgba(248,113,113,0.45)" : "1px solid rgba(34,197,94,0.25)",
-        background: isError ? "rgba(248,113,113,0.05)" : "rgba(34,197,94,0.04)",
+        background: isError ? "rgba(248,113,113,0.2)" : "rgba(34,197,94,0.2)",
       }}
     >
       {/* ── Tool call header ── */}

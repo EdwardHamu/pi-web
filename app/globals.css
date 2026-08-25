@@ -366,7 +366,7 @@ pre, code {
 .markdown-body h2 { font-size: 1.08em; }
 .markdown-body h3 { font-size: 0.98em; color: color-mix(in srgb, var(--text) 88%, var(--text-muted)); }
 .markdown-body ul, .markdown-body ol {
-  padding-left: 22px;
+  padding-left: 26px;
   margin: 5px 0 8px;
   list-style-position: outside;
 }
@@ -601,7 +601,7 @@ pre, code {
   border: 1px solid var(--border);
   border-radius: 7px;
   overflow: hidden;
-  background: var(--bg);
+  background: rgba(128, 128, 128, 0.3);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 42%, transparent);
 }
 .markdown-code-header {
@@ -1080,7 +1080,6 @@ html.dark body {
   box-shadow: var(--glass-shadow);
 }
 
-[data-pi-web-topbar="true"],
 [data-pi-web-right-panel="true"] {
   backdrop-filter: blur(10px) saturate(145%) !important;
   -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
@@ -1653,7 +1652,6 @@ html body [data-pi-web-app="true"] {
   filter: none !important;
 }
 
-[data-pi-web-topbar="true"],
 [data-pi-web-right-panel="true"],
 [data-pi-web-composer-surface="true"],
 [data-pi-web-sidebar="true"]::before,
@@ -1691,10 +1689,27 @@ html body [data-pi-web-app="true"] {
 }
 
 [data-pi-web-topbar="true"] {
+  position: relative;
+  isolation: isolate;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border: 1px solid var(--border) !important;
   border-radius: 12px;
   box-shadow: var(--glass-shadow);
   overflow: hidden;
+}
+
+[data-pi-web-topbar="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: transparent !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
 }
 
 [data-pi-web-topbar="true"] > div {
@@ -1732,17 +1747,6 @@ html body [data-pi-web-app="true"] {
     width: auto;
     align-self: stretch;
     margin: 0 12px;
-  }
-
-  [data-pi-web-sidebar="true"].sidebar-open {
-    height: calc(var(--app-viewport-height, 100dvh) - 24px);
-    margin: 12px 0 12px 12px;
-    border: 1px solid var(--border) !important;
-    border-radius: 12px;
-  }
-
-  [data-pi-web-sidebar="true"].sidebar-closed {
-    margin-left: 0;
   }
 }
 
@@ -1814,8 +1818,8 @@ html body [data-pi-web-app="true"] {
   box-shadow: none !important;
 }
 
-/* Only menus that float from a positioned anchor blur the wallpaper below.
-   Fixed and inline controls stay transparent without creating another glass layer. */
+/* Menus marked as glass blur the wallpaper below, including menus positioned
+   with position: fixed. */
 [data-pi-web-floating-menu="true"][data-pi-web-glass="true"],
 [data-pi-web-floating-dialog="true"] {
   -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
@@ -1830,27 +1834,34 @@ html body [data-pi-web-app="true"] {
 }
 
 [data-pi-web-minimap="true"] {
+  position: relative;
+  isolation: isolate;
   background: transparent !important;
-  backdrop-filter: blur(10px) saturate(145%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-pi-web-minimap="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: transparent !important;
   -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
+}
+
+[data-minimap-preview-box] {
+  background: transparent !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
 }
 
 @media (max-width: 640px) {
   [data-pi-web-topbar="true"] {
     margin: 0 12px;
-  }
-
-  [data-pi-web-sidebar="true"] {
-    top: calc(env(safe-area-inset-top) + 12px);
-    left: calc(env(safe-area-inset-left) + 12px);
-    bottom: calc(env(safe-area-inset-bottom) + 12px);
-    height: calc(var(--app-viewport-height, 100dvh) - 24px);
-    border: 1px solid var(--border) !important;
-    border-radius: 12px;
-  }
-
-  [data-pi-web-sidebar="true"].sidebar-closed {
-    transform: translateX(calc(-100% - 12px - env(safe-area-inset-left)));
   }
 }
 

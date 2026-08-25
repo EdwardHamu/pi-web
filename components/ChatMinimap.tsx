@@ -615,9 +615,6 @@ export function ChatMinimap({
         position: "relative",
         cursor: "pointer",
         userSelect: "none",
-        background: "transparent",
-        backdropFilter: "blur(10px) saturate(145%)",
-        WebkitBackdropFilter: "blur(10px) saturate(145%)",
         overflow: "visible",
       }}
     >

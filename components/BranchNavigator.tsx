@@ -334,7 +334,7 @@ export function BranchNavigator({ tree, activeLeafId, onLeafChange, inline, cont
            {!compact && <span>{t("i18n.branches")}</span>}
         </button>
         {open && dropdownPos && (
-          <div data-pi-web-floating-menu="true" style={{
+          <div data-pi-web-floating-menu="true" data-pi-web-glass="true" style={{
             position: "fixed",
             top: dropdownPos.top,
             left: dropdownPos.left,

@@ -20,7 +20,7 @@ export const enLocale: LocalePlugin = {
     "wallpaper.default": "Default wallpaper",
     "wallpaper.upload": "Upload image",
     "wallpaper.reset": "Remove custom wallpaper",
-    "wallpaper.overlay": "Readability overlay",
+    "wallpaper.overlay": "Readability overlay (dims the wallpaper to improve text readability)",
     "wallpaper.close": "Close wallpaper settings",
     "wallpaper.error.type": "Choose an image file.",
     "wallpaper.error.size": "Images must be 20 MB or smaller.",

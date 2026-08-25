@@ -201,7 +201,7 @@ body[data-pi-web-glass-wallpaper="on"] [data-pi-web-composer-frame] :where([role
 
 body[data-pi-web-glass-wallpaper="on"] [data-pi-web-message="user"] > div:first-child > div:first-child {
   border-color: var(--pi-glass-border) !important;
-  background: color-mix(in srgb, var(--user-bg) 62%, transparent) !important;
+  background: rgba(103, 80, 164, 0.3) !important;
   box-shadow: 0 10px 26px rgb(30 41 59 / 0.1);
   backdrop-filter: blur(8px) saturate(125%);
   -webkit-backdrop-filter: blur(8px) saturate(125%);

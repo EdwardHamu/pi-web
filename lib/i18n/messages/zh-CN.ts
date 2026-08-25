@@ -20,7 +20,7 @@ export const zhCNLocale: LocalePlugin = {
     "wallpaper.default": "默认壁纸",
     "wallpaper.upload": "上传图片",
     "wallpaper.reset": "移除自定义壁纸",
-    "wallpaper.overlay": "暗部遮罩",
+    "wallpaper.overlay": "可读性遮罩（降低壁纸亮度，提升文字可读性）",
     "wallpaper.close": "关闭壁纸设置",
     "wallpaper.error.type": "请选择图片文件。",
     "wallpaper.error.size": "图片不能超过 20 MB。",

@@ -2138,7 +2138,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                       ? { left: 8, right: 8, maxWidth: "calc(100vw - 16px)" }
                       : { left: modelDropdownRect.left, width: "max-content", minWidth: modelDropdownRect.width };
                     return (
-                      <div data-pi-web-floating-menu="true" ref={modelDropdownPanelRef} style={{
+                      <div data-pi-web-floating-menu="true" data-pi-web-glass="true" ref={modelDropdownPanelRef} style={{
                       position: "fixed",
                       bottom,
                       ...panelPos,

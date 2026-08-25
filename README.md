@@ -17,50 +17,34 @@ Local browser UI for the [pi coding agent](https://github.com/earendil-works/pi)
 
 ## Quick Start
 
-Pi Web requires Node.js 22.19.0 or newer. Check your version with `node --version`, then run:
+Pi Web requires Node.js 22.19.0 or newer. Check your version with `node --version`.
 
-```bash
-npx @agegr/pi-web@latest
-```
+**Preferred installation:**
+
+1. Download the latest `agegr-pi-web-<version>.tgz` asset from [GitHub Releases](https://github.com/EdwardHamu/pi-web/releases/latest).
+2. From the directory containing the downloaded archive, install it globally with npm:
+
+   On macOS, Linux, or Git Bash:
+
+   ```bash
+   npm install -g ./agegr-pi-web-<version>.tgz
+   pi-web
+   ```
+
+   On Windows PowerShell:
+
+   ```powershell
+   npm install -g .\agegr-pi-web-<version>.tgz
+   pi-web
+   ```
+
+Replace `<version>` with the version in the downloaded filename, such as `0.8.13`.
 
 The CLI opens a browser after the server is ready. If it does not, open [http://127.0.0.1:30141](http://127.0.0.1:30141). Pi Web listens only on `127.0.0.1` by default.
 
 If no model provider is configured yet, open the **Models** panel to sign in or add an API key.
 
-To install the `pi-web` command globally:
-
-```bash
-npm install -g @agegr/pi-web@latest
-pi-web
-```
-
-To update, stop the running process with `Ctrl+C` and run the same install command again. To uninstall, run `npm uninstall -g @agegr/pi-web`.
-
-### Install the GitHub Actions Artifact
-
-The repository includes a script that pushes the current `main` branch, triggers the package workflow, and downloads the npm artifact. Run it from the repository root:
-
-```bash
-cd /path/to/pi-web
-bash scripts/package-via-gh.sh
-```
-
-The artifact is downloaded into `artifacts/`. Install it on Linux, macOS, or Git Bash with:
-
-```bash
-PACKAGE_FILE="$(find artifacts -type f -name '*.tgz' -print -quit)"
-test -n "$PACKAGE_FILE" || { echo "No .tgz artifact found in artifacts/" >&2; exit 1; }
-npm install -g "./$PACKAGE_FILE"
-pi-web --no-open
-```
-
-On Windows PowerShell:
-
-```powershell
-$package = Get-ChildItem .\artifacts -Recurse -Filter *.tgz | Select-Object -First 1
-npm install -g $package.FullName
-pi-web --no-open
-```
+To update, stop the running process with `Ctrl+C`, download the new `.tgz` asset from [GitHub Releases](https://github.com/EdwardHamu/pi-web/releases/latest), and repeat the npm install command with the new filename. To uninstall, run `npm uninstall -g @agegr/pi-web`.
 
 ## Configuration
 
@@ -100,7 +84,7 @@ On macOS or Linux:
 HTTP_PROXY=http://127.0.0.1:7890 \
 HTTPS_PROXY=http://127.0.0.1:7890 \
 NO_PROXY=localhost,127.0.0.1 \
-npx @agegr/pi-web@latest
+pi-web
 ```
 
 On Windows PowerShell:
@@ -109,7 +93,7 @@ On Windows PowerShell:
 $env:HTTP_PROXY = "http://127.0.0.1:7890"
 $env:HTTPS_PROXY = "http://127.0.0.1:7890"
 $env:NO_PROXY = "localhost,127.0.0.1"
-npx @agegr/pi-web@latest
+pi-web
 ```
 
 ## Notes

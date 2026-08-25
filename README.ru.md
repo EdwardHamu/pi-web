@@ -17,24 +17,34 @@
 
 ## Быстрый старт
 
-Для работы Pi Web требуется Node.js 22.19.0 или новее. Проверьте версию командой `node --version`, затем выполните:
+Для работы Pi Web требуется Node.js 22.19.0 или новее. Проверьте версию командой `node --version`.
 
-```bash
-npx @agegr/pi-web@latest
-```
+**Рекомендуемый способ установки:**
+
+1. Скачайте последний файл `agegr-pi-web-<version>.tgz` из [GitHub Releases](https://github.com/EdwardHamu/pi-web/releases/latest).
+2. В каталоге с загруженным архивом установите его глобально с помощью npm:
+
+   В macOS, Linux или Git Bash:
+
+   ```bash
+   npm install -g ./agegr-pi-web-<version>.tgz
+   pi-web
+   ```
+
+   В Windows PowerShell:
+
+   ```powershell
+   npm install -g .\agegr-pi-web-<version>.tgz
+   pi-web
+   ```
+
+Замените `<version>` на версию из имени загруженного файла, например `0.8.13`.
 
 Когда сервер будет готов, CLI попытается открыть браузер автоматически. Если этого не произошло, откройте [http://127.0.0.1:30141](http://127.0.0.1:30141). По умолчанию Pi Web прослушивает только `127.0.0.1`.
 
 Если Provider модели ещё не настроен, откройте панель **Models**, войдите в учётную запись или добавьте API Key.
 
-Чтобы установить команду `pi-web` глобально:
-
-```bash
-npm install -g @agegr/pi-web@latest
-pi-web
-```
-
-Для обновления остановите запущенный процесс с помощью `Ctrl+C` и повторите ту же команду установки. Для удаления выполните `npm uninstall -g @agegr/pi-web`.
+Для обновления остановите запущенный процесс с помощью `Ctrl+C`, скачайте новый файл `.tgz` из [GitHub Releases](https://github.com/EdwardHamu/pi-web/releases/latest) и повторите команду установки npm с новым именем файла. Для удаления выполните `npm uninstall -g @agegr/pi-web`.
 
 ## Настройка
 
@@ -74,7 +84,7 @@ Basic Auth не шифрует пароль при передаче. Не пуб
 HTTP_PROXY=http://127.0.0.1:7890 \
 HTTPS_PROXY=http://127.0.0.1:7890 \
 NO_PROXY=localhost,127.0.0.1 \
-npx @agegr/pi-web@latest
+pi-web
 ```
 
 В Windows PowerShell:
@@ -83,7 +93,7 @@ npx @agegr/pi-web@latest
 $env:HTTP_PROXY = "http://127.0.0.1:7890"
 $env:HTTPS_PROXY = "http://127.0.0.1:7890"
 $env:NO_PROXY = "localhost,127.0.0.1"
-npx @agegr/pi-web@latest
+pi-web
 ```
 
 ## Примечания

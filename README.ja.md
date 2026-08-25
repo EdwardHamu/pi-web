@@ -17,24 +17,34 @@
 
 ## クイックスタート
 
-Pi Web には Node.js 22.19.0 以降が必要です。`node --version` でバージョンを確認してから、次を実行します：
+Pi Web には Node.js 22.19.0 以降が必要です。`node --version` でバージョンを確認してください。
 
-```bash
-npx @agegr/pi-web@latest
-```
+**推奨インストール方法：**
+
+1. [GitHub Releases](https://github.com/EdwardHamu/pi-web/releases/latest) から最新の `agegr-pi-web-<version>.tgz` アセットをダウンロードします。
+2. ダウンロードしたアーカイブがあるディレクトリで、npm を使ってグローバルにインストールします。
+
+   macOS、Linux、または Git Bash の場合：
+
+   ```bash
+   npm install -g ./agegr-pi-web-<version>.tgz
+   pi-web
+   ```
+
+   Windows PowerShell の場合：
+
+   ```powershell
+   npm install -g .\agegr-pi-web-<version>.tgz
+   pi-web
+   ```
+
+`<version>` は、ダウンロードしたファイル名に含まれるバージョンに置き換えてください（例：`0.8.13`）。
 
 サーバーの準備が整うと、CLI はブラウザーを自動的に開こうとします。開かない場合は [http://127.0.0.1:30141](http://127.0.0.1:30141) にアクセスしてください。Pi Web はデフォルトで `127.0.0.1` のみをリッスンします。
 
 モデル Provider が未設定の場合は、**Models** パネルを開いてログインするか API Key を追加してください。
 
-`pi-web` コマンドをグローバルにインストールする場合：
-
-```bash
-npm install -g @agegr/pi-web@latest
-pi-web
-```
-
-更新時は、実行中のプロセスを `Ctrl+C` で停止してから同じインストールコマンドを再実行します。アンインストールするには `npm uninstall -g @agegr/pi-web` を実行します。
+更新するには、実行中のプロセスを `Ctrl+C` で停止し、[GitHub Releases](https://github.com/EdwardHamu/pi-web/releases/latest) から新しい `.tgz` アセットをダウンロードして、新しいファイル名で npm インストールコマンドを再実行します。アンインストールするには `npm uninstall -g @agegr/pi-web` を実行します。
 
 ## 設定
 
@@ -74,7 +84,7 @@ macOS または Linux：
 HTTP_PROXY=http://127.0.0.1:7890 \
 HTTPS_PROXY=http://127.0.0.1:7890 \
 NO_PROXY=localhost,127.0.0.1 \
-npx @agegr/pi-web@latest
+pi-web
 ```
 
 Windows PowerShell：
@@ -83,7 +93,7 @@ Windows PowerShell：
 $env:HTTP_PROXY = "http://127.0.0.1:7890"
 $env:HTTPS_PROXY = "http://127.0.0.1:7890"
 $env:NO_PROXY = "localhost,127.0.0.1"
-npx @agegr/pi-web@latest
+pi-web
 ```
 
 ## 注意事項

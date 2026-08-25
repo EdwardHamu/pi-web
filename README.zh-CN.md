@@ -19,50 +19,34 @@
 
 ## 快速开始
 
-Pi Web 要求 Node.js 22.19.0 或更高版本。先用 `node --version` 检查版本，然后运行：
+Pi Web 要求 Node.js 22.19.0 或更高版本。先用 `node --version` 检查版本。
 
-```bash
-npx @agegr/pi-web@latest
-```
+**推荐安装方式：**
+
+1. 从 [GitHub Releases](https://github.com/EdwardHamu/pi-web/releases/latest) 下载最新的 `agegr-pi-web-<版本>.tgz` 资产。
+2. 在下载的压缩包所在目录中，用 npm 全局安装：
+
+   macOS、Linux 或 Git Bash：
+
+   ```bash
+   npm install -g ./agegr-pi-web-<版本>.tgz
+   pi-web
+   ```
+
+   Windows PowerShell：
+
+   ```powershell
+   npm install -g .\agegr-pi-web-<版本>.tgz
+   pi-web
+   ```
+
+将 `<版本>` 替换为下载文件名中的版本号，例如 `0.8.13`。
 
 服务就绪后，命令行会尝试自动打开浏览器。如果没有打开，请访问 [http://127.0.0.1:30141](http://127.0.0.1:30141)。Pi Web 默认仅监听 `127.0.0.1`。
 
 如果尚未配置模型 Provider，请打开**模型（Models）**面板登录或添加 API Key。
 
-如需全局安装 `pi-web` 命令：
-
-```bash
-npm install -g @agegr/pi-web@latest
-pi-web
-```
-
-更新前先用 `Ctrl+C` 停止正在运行的进程，再次执行同一条安装命令。卸载时运行 `npm uninstall -g @agegr/pi-web`。
-
-### 安装 GitHub Actions 构建产物
-
-仓库提供了一个脚本，可以推送当前 `main` 分支、触发打包 workflow，并下载 npm artifact。请从仓库根目录执行：
-
-```bash
-cd /path/to/pi-web
-bash scripts/package-via-gh.sh
-```
-
-脚本会把产物下载到 `artifacts/`。下载完成后，在 Linux、macOS 或 Git Bash 中安装：
-
-```bash
-PACKAGE_FILE="$(find artifacts -type f -name '*.tgz' -print -quit)"
-test -n "$PACKAGE_FILE" || { echo "No .tgz artifact found in artifacts/" >&2; exit 1; }
-npm install -g "./$PACKAGE_FILE"
-pi-web --no-open
-```
-
-Windows PowerShell 中可以这样安装：
-
-```powershell
-$package = Get-ChildItem .\artifacts -Recurse -Filter *.tgz | Select-Object -First 1
-npm install -g $package.FullName
-pi-web --no-open
-```
+更新时，先用 `Ctrl+C` 停止正在运行的进程，再从 [GitHub Releases](https://github.com/EdwardHamu/pi-web/releases/latest) 下载新的 `.tgz` 资产，并使用新的文件名重复执行 npm 安装命令。卸载时运行 `npm uninstall -g @agegr/pi-web`。
 
 ## 配置
 
@@ -102,7 +86,7 @@ macOS 或 Linux：
 HTTP_PROXY=http://127.0.0.1:7890 \
 HTTPS_PROXY=http://127.0.0.1:7890 \
 NO_PROXY=localhost,127.0.0.1 \
-npx @agegr/pi-web@latest
+pi-web
 ```
 
 Windows PowerShell：
@@ -111,7 +95,7 @@ Windows PowerShell：
 $env:HTTP_PROXY = "http://127.0.0.1:7890"
 $env:HTTPS_PROXY = "http://127.0.0.1:7890"
 $env:NO_PROXY = "localhost,127.0.0.1"
-npx @agegr/pi-web@latest
+pi-web
 ```
 
 ## 注意事项

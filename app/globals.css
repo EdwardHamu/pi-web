@@ -459,11 +459,18 @@ pre, code {
   margin: 8px 0;
   overflow-x: auto;
   overflow-y: hidden;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  overscroll-behavior-x: contain;
+  /* Keep every non-text table layer at or below 30% opacity. */
+  scrollbar-color: color-mix(in srgb, var(--accent) 26%, transparent) transparent;
+  scrollbar-width: thin;
+  border: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--text) 6%, transparent);
 }
 .markdown-table-wrap table {
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  width: 100%;
+  border: 0;
 }
 .markdown-body table {
   border-collapse: separate;
@@ -473,18 +480,35 @@ pre, code {
 }
 .markdown-body th, .markdown-body td {
   border: 0;
-  border-bottom: 1px solid var(--border);
-  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 26%, transparent);
+  padding: 8px 12px;
   text-align: left;
   vertical-align: top;
 }
 .markdown-body tr:last-child td { border-bottom: 0; }
 .markdown-body th {
-  background: var(--bg-panel);
-  color: color-mix(in srgb, var(--text) 88%, var(--text-muted));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--accent) 24%, transparent);
+  color: var(--text);
   font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
-.markdown-body tbody tr:nth-child(even) td { background: var(--bg-subtle); }
+.markdown-body tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+.markdown-body tbody tr {
+  transition: background-color 120ms ease;
+}
+.markdown-body tbody tr:hover td {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.markdown-body tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+.markdown-body tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
+}
 .markdown-body hr {
   border: none;
   height: 1px;

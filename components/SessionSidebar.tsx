@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
 import type { SessionInfo } from "@/lib/types";
 import { loadExplorerOpen, saveExplorerOpen } from "@/lib/file-explorer-state";
+import { loadPinnedSessionIds, savePinnedSessionIds } from "@/lib/pinned-sessions";
 import { dispatchSessionRowContextMenu } from "@/lib/session-row-context-menu";
 import { skillExpansionToCommand } from "@/lib/slash-display";
 import { getProjectActivity, getRecentProjects, sessionsForProject } from "@/lib/project-groups";
@@ -262,7 +263,10 @@ interface SessionTreeNode {
   children: SessionTreeNode[];
 }
 
-function buildSessionTree(sessions: SessionInfo[]): SessionTreeNode[] {
+function buildSessionTree(
+  sessions: SessionInfo[],
+  pinnedSessionIds: ReadonlySet<string> = new Set(),
+): SessionTreeNode[] {
   const byId = new Map<string, SessionTreeNode>();
   for (const s of sessions) {
     byId.set(s.id, { session: s, children: [] });
@@ -297,9 +301,17 @@ function buildSessionTree(sessions: SessionInfo[]): SessionTreeNode[] {
     }
   }
 
-  // Sort each level by modified desc
+  // Keep pinned sessions ahead of the normal recency order at every level of
+  // the fork tree. A pinned fork remains under its parent, preserving the
+  // existing parent-child relationship while still moving to the top of its
+  // sibling group.
   const sort = (nodes: SessionTreeNode[]) => {
-    nodes.sort((a, b) => b.session.modified.localeCompare(a.session.modified));
+    nodes.sort((a, b) => {
+      const aPinned = pinnedSessionIds.has(a.session.id);
+      const bPinned = pinnedSessionIds.has(b.session.id);
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      return b.session.modified.localeCompare(a.session.modified);
+    });
     nodes.forEach((n) => sort(n.children));
   };
   sort(roots);
@@ -430,6 +442,8 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   const [explorerRefreshDone, setExplorerRefreshDone] = useState(false);
   const [runningSessionIds, setRunningSessionIds] = useState<Set<string>>(() => new Set());
   const [unreadSessionIds, setUnreadSessionIds] = useState<Set<string>>(() => loadUnreadSessionIds());
+  const [pinnedSessionIds, setPinnedSessionIds] = useState<Set<string>>(() => new Set());
+  const [pinnedSessionsHydrated, setPinnedSessionsHydrated] = useState(false);
   const previousRunningSessionIdsRef = useRef<Set<string>>(new Set());
   // Once polling has delivered a snapshot it is the source of truth for
   // running state; late /api/sessions responses must not overwrite it.
@@ -484,6 +498,30 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   useEffect(() => {
     setExplorerOpen(loadExplorerOpen());
   }, []);
+
+  // Pinning is a browser-local sidebar preference. Load it after hydration so
+  // the server render and the first client render remain identical.
+  useEffect(() => {
+    setPinnedSessionIds(loadPinnedSessionIds());
+    setPinnedSessionsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!pinnedSessionsHydrated) return;
+    savePinnedSessionIds(pinnedSessionIds);
+  }, [pinnedSessionIds, pinnedSessionsHydrated]);
+
+  // Session files can be removed outside this sidebar. Do not leave their
+  // ids in localStorage once a successful session refresh proves they are
+  // gone.
+  useEffect(() => {
+    if (!pinnedSessionsHydrated || loading || error) return;
+    const existingIds = new Set(allSessions.map((session) => session.id));
+    setPinnedSessionIds((prev) => {
+      const next = new Set([...prev].filter((id) => existingIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [allSessions, error, loading, pinnedSessionsHydrated]);
 
   // Persist unread markers so they survive a browser refresh before the user
   // has actually opened the completed session.
@@ -886,6 +924,15 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     onSelectSession(s);
   }, [onSelectSession]);
 
+  const handleTogglePinned = useCallback((sessionId: string) => {
+    setPinnedSessionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) next.delete(sessionId);
+      else next.add(sessionId);
+      return next;
+    });
+  }, []);
+
   const handleNewSession = useCallback(() => {
     if (!selectedCwd) return;
     // Generate a temporary UUID client-side — no backend call needed.
@@ -955,7 +1002,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
       : null);
 
   // Build parent-child tree within the filtered set
-  const sessionTree = buildSessionTree(filteredSessions);
+  const sessionTree = buildSessionTree(filteredSessions, pinnedSessionIds);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
@@ -1644,9 +1691,17 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
             selectedSessionId={selectedSessionId}
             runningSessionIds={runningSessionIds}
             unreadSessionIds={unreadSessionIds}
+            pinnedSessionIds={pinnedSessionIds}
             onSelectSession={handleSelectSessionFromList}
+            onTogglePinned={handleTogglePinned}
             onRenamed={loadSessions}
             onSessionDeleted={(id) => {
+              setPinnedSessionIds((prev) => {
+                if (!prev.has(id)) return prev;
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
               onSessionDeleted?.(id);
               loadSessions();
             }}
@@ -1781,7 +1836,9 @@ function SessionTreeItem({
   selectedSessionId,
   runningSessionIds,
   unreadSessionIds,
+  pinnedSessionIds,
   onSelectSession,
+  onTogglePinned,
   onRenamed,
   onSessionDeleted,
   depth,
@@ -1790,7 +1847,9 @@ function SessionTreeItem({
   selectedSessionId: string | null;
   runningSessionIds: Set<string>;
   unreadSessionIds: Set<string>;
+  pinnedSessionIds: ReadonlySet<string>;
   onSelectSession: (s: SessionInfo) => void;
+  onTogglePinned: (sessionId: string) => void;
   onRenamed?: () => void;
   onSessionDeleted?: (id: string) => void;
   depth: number;
@@ -1817,7 +1876,9 @@ function SessionTreeItem({
           isSelected={node.session.id === selectedSessionId}
           isRunning={runningSessionIds.has(node.session.id)}
           isUnread={unreadSessionIds.has(node.session.id)}
+          isPinned={pinnedSessionIds.has(node.session.id)}
           onClick={() => onSelectSession(node.session)}
+          onTogglePinned={() => onTogglePinned(node.session.id)}
           onRenamed={onRenamed}
           onDeleted={(id) => onSessionDeleted?.(id)}
           depth={depth}
@@ -1835,7 +1896,9 @@ function SessionTreeItem({
               selectedSessionId={selectedSessionId}
               runningSessionIds={runningSessionIds}
               unreadSessionIds={unreadSessionIds}
+              pinnedSessionIds={pinnedSessionIds}
               onSelectSession={onSelectSession}
+              onTogglePinned={onTogglePinned}
               onRenamed={onRenamed}
               onSessionDeleted={onSessionDeleted}
               depth={depth + 1}
@@ -1959,7 +2022,9 @@ function SessionItem({
   isSelected,
   isRunning,
   isUnread,
+  isPinned,
   onClick,
+  onTogglePinned,
   onRenamed,
   onDeleted,
   depth = 0,
@@ -1971,7 +2036,9 @@ function SessionItem({
   isSelected: boolean;
   isRunning?: boolean;
   isUnread?: boolean;
+  isPinned?: boolean;
   onClick: () => void;
+  onTogglePinned?: () => void;
   onRenamed?: () => void;
   onDeleted?: (id: string) => void;
   depth?: number;
@@ -2082,6 +2149,7 @@ function SessionItem({
     <div
       data-pi-web-session-item="true"
       data-selected={isSelected ? "true" : undefined}
+      data-pinned={isPinned ? "true" : undefined}
       onClick={confirmDelete || renaming ? undefined : onClick}
       onContextMenu={confirmDelete || renaming ? undefined : handleContextMenu}
       onMouseEnter={() => setHovered(true)}
@@ -2194,6 +2262,17 @@ function SessionItem({
               }}
               title={title}
             >
+              {isPinned && (
+                <span
+                  title={t("sidebar.pinned")}
+                  aria-label={t("sidebar.pinned")}
+                  style={{ display: "inline-flex", alignItems: "center", color: "var(--accent)", flexShrink: 0 }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M16 9V4h1V2H7v2h1v5c0 1.1-.9 2-2 2v2h5v7h2v-7h5v-2c-1.1 0-2-.9-2-2Z" />
+                  </svg>
+                </span>
+              )}
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                 {title}
               </span>
@@ -2247,6 +2326,36 @@ function SessionItem({
           {/* Action buttons — shown on hover */}
           {hovered && !session.transient && (
             <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); onTogglePinned?.(); }}
+                title={t(isPinned ? "sidebar.unpin" : "sidebar.pin")}
+                aria-label={t(isPinned ? "sidebar.unpin" : "sidebar.pin")}
+                aria-pressed={isPinned}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 32, height: 32, padding: 0,
+                  background: isPinned ? "var(--bg-selected)" : "var(--bg-hover)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 7,
+                  color: isPinned ? "var(--accent)" : "var(--text-muted)",
+                  cursor: "pointer", flexShrink: 0,
+                  transition: "background 0.12s, color 0.12s, border-color 0.12s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--bg-selected)";
+                  e.currentTarget.style.color = "var(--accent)";
+                  e.currentTarget.style.borderColor = "color-mix(in srgb, var(--accent) 35%, var(--border))";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = isPinned ? "var(--bg-selected)" : "var(--bg-hover)";
+                  e.currentTarget.style.color = isPinned ? "var(--accent)" : "var(--text-muted)";
+                  e.currentTarget.style.borderColor = "var(--border)";
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M16 9V4h1V2H7v2h1v5c0 1.1-.9 2-2 2v2h5v7h2v-7h5v-2c-1.1 0-2-.9-2-2Z" />
+                </svg>
+              </button>
               <button
                 onClick={startRename}
                 title={t("sidebar.rename")}

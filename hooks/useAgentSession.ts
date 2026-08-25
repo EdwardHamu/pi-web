@@ -261,6 +261,10 @@ type SlashCommandsResponse = {
   commands?: SlashCommandInfo[];
 };
 
+function sameSelectedModel(a: SelectedModel | null | undefined, b: SelectedModel | null | undefined): boolean {
+  return Boolean(a && b && a.provider === b.provider && a.modelId === b.modelId);
+}
+
 export function useAgentSession(opts: UseAgentSessionOptions) {
   const {
     session, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked,
@@ -337,6 +341,8 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   const ensuringNewSessionRef = useRef<Promise<string | null> | null>(null);
   const newSessionPromotedRef = useRef(false);
   const newSessionModelOverrideRef = useRef<SelectedModel | null>(null);
+  const newSessionModelAppliedRef = useRef<SelectedModel | null>(null);
+  const newSessionModelChangeRef = useRef<Promise<void>>(Promise.resolve());
   const thinkingLevelOverrideRef = useRef<Exclude<ThinkingLevelOption, "auto"> | null>(null);
   const promptRunIdRef = useRef(0);
   const optimisticUserMessageKeyRef = useRef<string | null>(null);
@@ -608,6 +614,9 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       };
       const realId = result.sessionId;
       sessionIdRef.current = realId;
+      // Keep the server's effective model so a selection made while startup
+      // was in flight can be applied immediately before the first prompt.
+      newSessionModelAppliedRef.current = result.model ?? null;
       if (result.model && newSessionModelOverrideRef.current === selectedModel) {
         setPendingModel(result.model);
         if (!selectedModel) setNewSessionDefaultModel(result.model);
@@ -628,6 +637,34 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       ensuringNewSessionRef.current = null;
     }
   }, [isNew, newSessionCwd, toolPreset]);
+
+  // Model changes can arrive while a fresh session is being initialized. Keep
+  // set_model and the first prompt on one client-side queue so the last choice
+  // always wins, even if React has not rendered the latest state yet.
+  const applyNewSessionModel = useCallback(async (sid: string) => {
+    const run = newSessionModelChangeRef.current.then(async () => {
+      while (sessionHookMountedRef.current && sessionIdRef.current === sid) {
+        const target = newSessionModelOverrideRef.current;
+        if (!target || sameSelectedModel(newSessionModelAppliedRef.current, target)) return;
+
+        setPendingModel(target);
+        await sendAgentCommand(sid, {
+          type: "set_model",
+          provider: target.provider,
+          modelId: target.modelId,
+        });
+        newSessionModelAppliedRef.current = target;
+
+        // A newer selection may have arrived while the request was in flight.
+        if (sameSelectedModel(newSessionModelOverrideRef.current, target)) return;
+      }
+    });
+
+    // Keep later selections usable after a failed request, while preserving
+    // the rejection for the caller that initiated this operation.
+    newSessionModelChangeRef.current = run.catch(() => {});
+    return run;
+  }, []);
 
   // Opening the System panel is also allowed to initialize an otherwise dormant
   // session. This is deliberately a non-prompt command: it creates no message
@@ -1299,18 +1336,15 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
 
     try {
       if (isNew && newSessionCwd) {
-        const selectedModel = newSessionModel;
-        const existingSid = sessionIdRef.current ?? await ensuringNewSessionRef.current;
-        const sid = existingSid ?? await ensureNewSession();
+        const sid = sessionIdRef.current
+          ?? await ensuringNewSessionRef.current
+          ?? await ensureNewSession();
 
         if (!sid) throw new Error("Unable to create a session for the prompt");
         sentSessionId = sid;
-        if (selectedModel) {
-          setPendingModel(selectedModel);
-          if (existingSid) {
-            await sendAgentCommand(sid, { type: "set_model", provider: selectedModel.provider, modelId: selectedModel.modelId });
-          }
-        }
+        // Read the ref after startup has settled: React state in this closure
+        // may still contain the model from the previous render.
+        await applyNewSessionModel(sid);
         await ensureEventsConnected(sid);
         promptRequestStarted = true;
         await sendAgentCommand(sid, {
@@ -1367,7 +1401,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       setAgentPhase(null);
       dispatch({ type: "end" });
     }
-  }, [isNew, newSessionCwd, newSessionModel, session, ensureNewSession, ensureEventsConnected, promoteNewSession, waitForPromptSettlement, addNotice, cancelEventStreamGrace, closeEvents, composerDraftKey, reconcileAgentState, restoreSubmission]);
+  }, [isNew, newSessionCwd, session, ensureNewSession, ensureEventsConnected, applyNewSessionModel, promoteNewSession, waitForPromptSettlement, addNotice, cancelEventStreamGrace, closeEvents, composerDraftKey, reconcileAgentState, restoreSubmission]);
 
   const executeBash = useCallback(async (command: string, excludeFromContext: boolean) => {
     if (agentRunningRef.current || bashRunningRef.current) return;
@@ -1462,12 +1496,16 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       newSessionModelOverrideRef.current = selectedModel;
       setNewSessionModel(selectedModel);
       setPendingModel(selectedModel);
-      const sid = sessionIdRef.current ?? await ensuringNewSessionRef.current;
-      if (!sid) return;
       try {
-        await sendAgentCommand(sid, { type: "set_model", provider, modelId });
+        const sid = sessionIdRef.current ?? await ensuringNewSessionRef.current;
+        if (!sid) return;
+        await applyNewSessionModel(sid);
       } catch (e) {
         console.error("Failed to set model:", e);
+        addNotice({
+          type: "error",
+          message: `Failed to switch model: ${e instanceof Error ? e.message : String(e)}`,
+        });
       }
       return;
     }
@@ -1499,7 +1537,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       modelSwitchPendingRef.current = false;
       setModelSwitching(false);
     }
-  }, [addNotice, currentModelOverride, isNew, loadSession, setNewSessionModel]);
+  }, [addNotice, applyNewSessionModel, currentModelOverride, isNew, loadSession, setNewSessionModel]);
 
   const handleCompact = useCallback(async () => {
     const sid = sessionIdRef.current;

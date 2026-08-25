@@ -35,3 +35,23 @@ test("a completed model switch reloads canonical session state and reports failu
   assert.match(switchSource, /setCurrentModelOverride\(previousOverride\)/);
   assert.match(switchSource, /Failed to switch model:/);
 });
+
+test("fresh-session model changes are queued before the first prompt", () => {
+  const sendSource = source.slice(
+    source.indexOf("  const handleSend = useCallback"),
+    source.indexOf("  const executeBash = useCallback"),
+  );
+
+  assert.match(source, /const newSessionModelAppliedRef = useRef/);
+  assert.match(source, /const newSessionModelChangeRef = useRef<Promise<void>>/);
+  assert.match(source, /const applyNewSessionModel = useCallback/);
+  assert.match(sendSource, /const sid = sessionIdRef\.current[\s\S]*?await ensureNewSession\(\)/);
+  assert.match(sendSource, /await applyNewSessionModel\(sid\)/);
+  assert.doesNotMatch(sendSource, /const selectedModel = newSessionModel;/);
+});
+
+test("fresh-session model selection uses the live override ref", () => {
+  assert.match(switchSource, /newSessionModelOverrideRef\.current = selectedModel/);
+  assert.match(switchSource, /await applyNewSessionModel\(sid\)/);
+  assert.match(switchSource, /Failed to switch model:/);
+});

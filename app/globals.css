@@ -462,6 +462,9 @@ pre, code {
   border: 1px solid var(--border);
   border-radius: 7px;
 }
+.markdown-table-wrap table {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
 .markdown-body table {
   border-collapse: separate;
   border-spacing: 0;

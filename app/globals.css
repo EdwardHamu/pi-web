@@ -1078,6 +1078,10 @@ html.dark body {
   background: var(--glass-panel) !important;
   border-color: var(--border) !important;
   box-shadow: var(--glass-shadow);
+}
+
+[data-pi-web-topbar="true"],
+[data-pi-web-right-panel="true"] {
   backdrop-filter: blur(10px) saturate(145%) !important;
   -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
 }
@@ -1649,7 +1653,6 @@ html body [data-pi-web-app="true"] {
   filter: none !important;
 }
 
-[data-pi-web-sidebar="true"],
 [data-pi-web-topbar="true"],
 [data-pi-web-right-panel="true"],
 [data-pi-web-composer-surface="true"],
@@ -1728,7 +1731,7 @@ html body [data-pi-web-app="true"] {
   [data-pi-web-topbar="true"] {
     width: auto;
     align-self: stretch;
-    margin: 12px 12px 0;
+    margin: 0 12px;
   }
 
   [data-pi-web-sidebar="true"].sidebar-open {
@@ -1834,7 +1837,7 @@ html body [data-pi-web-app="true"] {
 
 @media (max-width: 640px) {
   [data-pi-web-topbar="true"] {
-    margin: 8px 12px 0;
+    margin: 0 12px;
   }
 
   [data-pi-web-sidebar="true"] {
@@ -1849,4 +1852,24 @@ html body [data-pi-web-app="true"] {
   [data-pi-web-sidebar="true"].sidebar-closed {
     transform: translateX(calc(-100% - 12px - env(safe-area-inset-left)));
   }
+}
+
+/* Keep the sidebar content on a transparent surface and put its blur in a
+   dedicated background layer. This avoids compositing every sidebar child. */
+[data-pi-web-sidebar="true"] {
+  isolation: isolate;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-pi-web-sidebar="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: transparent !important;
+  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
+  backdrop-filter: blur(10px) saturate(145%) !important;
 }

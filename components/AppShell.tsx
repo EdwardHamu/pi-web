@@ -1720,8 +1720,6 @@ export function AppShell() {
           "--sidebar-width": `${sidebarResizer.width}px`,
           background: "var(--bg-panel)",
           borderRight: "1px solid var(--border)",
-          backdropFilter: "blur(10px) saturate(145%)",
-          WebkitBackdropFilter: "blur(10px) saturate(145%)",
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,

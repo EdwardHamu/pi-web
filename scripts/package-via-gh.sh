@@ -71,6 +71,7 @@ retry_capture() {
 
 command -v git >/dev/null 2>&1 || die "git is required"
 command -v gh >/dev/null 2>&1 || die "GitHub CLI (gh) is required"
+command -v npm >/dev/null 2>&1 || die "npm is required"
 
 branch=$(git symbolic-ref --quiet --short HEAD) || die "current checkout is detached; switch to a branch first"
 [[ "$branch" == "$TARGET_BRANCH" ]] || die "current branch '$branch' is not target branch '$TARGET_BRANCH'"
@@ -80,6 +81,10 @@ case "${remote_url%.git}" in
   "https://github.com/$GH_REPO"|"git@github.com:$GH_REPO"|"ssh://git@github.com/$GH_REPO") ;;
   *) die "remote '$REMOTE' points to '$remote_url', expected GitHub repository '$GH_REPO'" ;;
 esac
+
+printf 'Bumping package version before packaging...\n'
+new_version=$(npm version patch --no-git-tag-version)
+printf 'Package version is now %s.\n' "$new_version"
 
 if ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
   git add -A

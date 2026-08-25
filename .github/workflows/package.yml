@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: package-${{ github.ref }}
@@ -40,6 +40,13 @@ jobs:
           npm pack --pack-destination artifacts
           ls -lh artifacts
 
+      - name: Read package version
+        id: package-version
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Upload npm tarball
         uses: actions/upload-artifact@v4
         with:
@@ -47,3 +54,10 @@ jobs:
           path: artifacts/*.tgz
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload npm tarball to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.package-version.outputs.version }}
+          files: artifacts/*.tgz
+          fail_on_unmatched_files: true

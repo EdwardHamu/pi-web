@@ -644,6 +644,10 @@ export function AppShell() {
     activeNewSessionDraftKeyRef.current = null;
     setNewSessionCwd(null);
     setSelectedSession(session);
+    // The fresh composer has a different hook lifecycle after pi assigns the
+    // real session id. Remount ChatWindow so its new-session model state cannot
+    // leak into the persisted session.
+    setSessionKey((k) => k + 1);
     hydrateSelectedSession(session.id);
     router.replace(`?session=${encodeURIComponent(session.id)}`, { scroll: false });
   }, [invalidateWorkspaceRestore, router, hydrateSelectedSession]);

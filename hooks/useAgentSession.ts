@@ -536,9 +536,25 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       const url = `/api/sessions/${encodeURIComponent(sid)}/context?${params}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const d = await res.json() as { context: { messages: AgentMessage[]; entryIds: string[] } };
+      const d = await res.json() as {
+        context: {
+          messages: AgentMessage[];
+          entryIds: string[];
+          thinkingLevel?: string;
+          model?: SelectedModel | null;
+        };
+      };
+      if (sessionIdRef.current !== sid) return;
       setMessages(d.context.messages);
       setEntryIds(d.context.entryIds ?? []);
+      // A tree navigation changes the effective context without remounting the
+      // hook. Keep the model selector aligned with the selected branch.
+      setCurrentModelOverride((current) => (
+        modelSwitchPendingRef.current ? current : d.context.model ?? null
+      ));
+      if (d.context.thinkingLevel) {
+        setThinkingLevel(d.context.thinkingLevel as ThinkingLevelOption);
+      }
     } catch (e) {
       console.error("Failed to load context:", e);
     }

@@ -186,6 +186,31 @@ test("stale fresh-session completion cannot replace the active composer", () => 
   );
 });
 
+test("promoting a fresh session remounts the chat before it becomes persisted", () => {
+  const createdSource = appShellSource.slice(
+    appShellSource.indexOf("  const handleSessionCreated = useCallback"),
+    appShellSource.indexOf("  const handleAgentEnd = useCallback"),
+  );
+
+  assert.match(createdSource, /setSelectedSession\(session\)/);
+  assert.match(createdSource, /setSessionKey\(\(k\) => k \+ 1\)/);
+  assert.ok(
+    createdSource.indexOf("setSessionKey((k) => k + 1)")
+      < createdSource.indexOf("hydrateSelectedSession(session.id)"),
+  );
+});
+
+test("branch context reload restores its effective model", () => {
+  const contextSource = source.slice(
+    source.indexOf("const loadContext = useCallback"),
+    source.indexOf("const loadTools = useCallback"),
+  );
+
+  assert.match(contextSource, /model\?: SelectedModel \| null/);
+  assert.match(contextSource, /if \(sessionIdRef\.current !== sid\) return/);
+  assert.match(contextSource, /modelSwitchPendingRef\.current \? current : d\.context\.model \?\? null/);
+});
+
 test("abandoned fresh-session drafts are cleared and cannot be recreated by late rejection", () => {
   const restoreSource = source.slice(
     source.indexOf("  const restoreSubmission = useCallback"),

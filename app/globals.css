@@ -1721,10 +1721,14 @@ html body [data-pi-web-app="true"] {
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid var(--border) !important;
+  border: 1px solid rgb(255 255 255 / 0.14) !important;
   border-radius: 12px;
   box-shadow: var(--glass-shadow);
   overflow: hidden;
+}
+
+[data-pi-web-composer-frame="true"] {
+  border: 1px solid rgb(255 255 255 / 0.14) !important;
 }
 
 [data-pi-web-topbar="true"]::before {

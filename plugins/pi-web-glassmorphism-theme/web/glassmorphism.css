@@ -3,7 +3,7 @@
   --pi-glass-blur: 14px;
   --pi-glass-saturation: 135%;
   --pi-glass-radius: 16px;
-  --pi-glass-border: rgb(255 255 255 / 0.52);
+  --pi-glass-border: rgb(255 255 255 / 0.14);
   --pi-glass-surface: rgb(248 251 255 / 0.46);
   --pi-glass-menu: rgb(248 251 255 / 0.66);
   --pi-glass-shadow: 0 18px 48px rgb(30 41 59 / 0.16);
@@ -34,7 +34,7 @@ html:not(.dark) {
   --bg-panel: var(--md-sys-color-surface-container-low);
   --bg-hover: #e3e9f2;
   --bg-selected: var(--md-sys-color-secondary-container);
-  --border: var(--md-sys-color-outline-variant);
+  --border: rgb(255 255 255 / 0.14);
   --text: var(--md-sys-color-on-surface);
   --text-muted: var(--md-sys-color-on-surface-variant);
   --text-dim: #7c8a9b;
@@ -48,7 +48,7 @@ html:not(.dark) {
 
 html.dark {
   color-scheme: dark;
-  --pi-glass-border: rgb(255 255 255 / 0.16);
+  --pi-glass-border: rgb(255 255 255 / 0.14);
   --pi-glass-surface: rgb(19 27 38 / 0.52);
   --pi-glass-menu: rgb(25 34 47 / 0.78);
   --pi-glass-shadow: 0 20px 56px rgb(0 0 0 / 0.3);
@@ -70,7 +70,7 @@ html.dark {
   --bg-panel: var(--md-sys-color-surface-container-low);
   --bg-hover: #263241;
   --bg-selected: var(--md-sys-color-secondary-container);
-  --border: var(--md-sys-color-outline-variant);
+  --border: rgb(255 255 255 / 0.14);
   --text: var(--md-sys-color-on-surface);
   --text-muted: var(--md-sys-color-on-surface-variant);
   --text-dim: #8290a3;
@@ -152,6 +152,7 @@ body[data-pi-web-glass-wallpaper="on"] [data-pi-web-topbar] {
   position: relative;
   isolation: isolate;
   background: transparent !important;
+  border: 1px solid rgb(255 255 255 / 0.14) !important;
 }
 
 body[data-pi-web-glass-wallpaper="on"] [data-pi-web-topbar]::before {
@@ -174,7 +175,7 @@ body[data-pi-web-glass-wallpaper="on"] [data-pi-web-topbar] > div:first-child {
 body[data-pi-web-glass-wallpaper="on"] [data-pi-web-composer-surface] {
   position: relative;
   isolation: isolate;
-  border-color: var(--pi-glass-border) !important;
+  border: 1px solid rgb(255 255 255 / 0.14) !important;
   background: transparent !important;
   box-shadow: var(--pi-glass-shadow) !important;
 }

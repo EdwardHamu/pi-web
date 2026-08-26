@@ -1721,14 +1721,9 @@ html body [data-pi-web-app="true"] {
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid rgb(255 255 255 / 0.14) !important;
   border-radius: 12px;
   box-shadow: var(--glass-shadow);
   overflow: hidden;
-}
-
-[data-pi-web-composer-frame="true"] {
-  border: 1px solid rgb(255 255 255 / 0.14) !important;
 }
 
 [data-pi-web-topbar="true"]::before {
@@ -1781,8 +1776,7 @@ html body [data-pi-web-app="true"] {
   }
 }
 
-/* Keep the wallpaper visible through every application surface. Repeating the
-   root selector keeps this reset ahead of component-level !important rules. */
+/* Material Design 3 uses a rounded state layer instead of an active-row border. */
 [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"],
 [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] *,
 [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] *::before,
@@ -1790,7 +1784,7 @@ html body [data-pi-web-app="true"] {
   border: none !important;
 }
 
-/* Material Design 3 uses a rounded state layer instead of an active-row border. */
+/* Keep the intentionally borderless session state layer borderless. */
 [data-pi-web-sidebar="true"] [data-pi-web-session-item="true"] {
   position: relative;
 }
@@ -1864,6 +1858,16 @@ html body [data-pi-web-app="true"] {
   border: none !important;
 }
 
+/* Explicit border styling for glass topbar and composer surface */
+[data-pi-web-topbar="true"],
+html body [data-pi-web-app] [data-pi-web-topbar],
+html body [data-pi-web-app="true"] [data-pi-web-topbar="true"],
+[data-pi-web-composer-surface="true"],
+html body [data-pi-web-app] [data-pi-web-composer-surface],
+html body [data-pi-web-app="true"] [data-pi-web-composer-surface="true"] {
+  border: 1px solid rgb(255 255 255 / 0.14) !important;
+}
+
 [data-pi-web-minimap="true"] {
   position: relative;
   isolation: isolate;
@@ -1914,4 +1918,14 @@ html body [data-pi-web-app="true"] {
   background: transparent !important;
   -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
   backdrop-filter: blur(10px) saturate(145%) !important;
+}
+
+/* Give only the primary glass containers a border. Do not target descendants:
+   the global reset above intentionally keeps their controls borderless unless
+   a component explicitly opts into its own border. */
+html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] [data-pi-web-topbar="true"],
+html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] [data-pi-web-sidebar="true"],
+html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] [data-pi-web-message-column="true"],
+html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] [data-pi-web-composer-surface="true"] {
+  border: 1px solid rgb(255 255 255 / 0.14) !important;
 }

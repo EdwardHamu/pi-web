@@ -18,6 +18,29 @@ Lint: `npm run lint`
 - Do not use `next dev --webpack` as a fallback. This repository's development graph can fail on `undici` imports such as `node:console`; development is expected to use Turbopack.
 - Next.js may append a generated `BEGIN:nextjs-agent-rules` block to `AGENTS.md` when `next dev` starts. Treat that as generated tooling output, verify it with `git status`, and do not include it in an unrelated feature commit.
 
+### Windows sandbox validation exceptions
+
+This checkout is also used from an unprivileged Windows Codex sandbox. In that
+environment, skip the following known infrastructure-limited validations rather
+than treating them as application regressions:
+
+- Do not run `npm run build` as a routine validation. Webpack fails before a
+  project compile with `EPERM: operation not permitted, readlink
+  'C:\Users\11038\.codex\.sandbox\setup_marker.json'`. Revisit the build only
+  after the sandbox can read that link or when validating outside this sandbox.
+- Skip `lists directories and directory symlinks without returning files` in
+  `lib/directory-browser.test.mjs` and `rejects files outside cwd, including
+  symlink targets` in `lib/subagent-input.test.mjs`. This Windows account cannot
+  create the test symlinks and Node returns `EPERM` during test setup.
+- Skip `direct bash updates the platform PATH key` in
+  `lib/project-command-env.test.mjs`. Its simulated Linux case uses the host
+  Windows `path.delimiter` in its expected value; the implementation correctly
+  uses `:` for the simulated Linux platform.
+
+Continue to run `node_modules/.bin/tsc --noEmit`, focused tests, and all other
+test cases. Only the exact failures above are exempt; investigate any other
+test or build error normally.
+
 ---
 
 ## Architecture

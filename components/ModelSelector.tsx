@@ -233,6 +233,8 @@ export function ModelSelector({
             ref={panelRef}
             role="listbox"
             aria-label={ariaLabel}
+            data-pi-web-floating-menu="true"
+            data-pi-web-glass="true"
             style={{
               position: "fixed",
               ...verticalPosition,

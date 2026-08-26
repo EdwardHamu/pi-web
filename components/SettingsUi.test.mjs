@@ -6,6 +6,7 @@ const templateSource = await readFile(new URL("./SettingsUi.tsx", import.meta.ur
 const cssSource = await readFile(new URL("../app/settings.css", import.meta.url), "utf8");
 const globalCssSource = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const layoutSource = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
+const settingsPanelSource = await readFile(new URL("./SettingsPanel.tsx", import.meta.url), "utf8");
 const enSource = await readFile(new URL("../lib/i18n/messages/en.ts", import.meta.url), "utf8");
 const zhSource = await readFile(new URL("../lib/i18n/messages/zh-CN.ts", import.meta.url), "utf8");
 const configSources = await Promise.all(
@@ -52,6 +53,7 @@ test("loads settings presentation from its dedicated stylesheet", () => {
   assert.match(layoutSource, /import "\.\/globals\.css";\s*import "\.\/settings\.css";/);
   assert.match(cssSource, /\.config-panel-root \{/);
   assert.match(cssSource, /\.settings-dialog-backdrop \{/);
+  assert.match(settingsPanelSource, /className="settings-dialog-surface"[\s\S]*?data-pi-web-floating-dialog="true"/);
   assert.doesNotMatch(globalCssSource, /\.config-panel-root \{/);
   assert.doesNotMatch(globalCssSource, /\.settings-dialog-backdrop \{/);
 });

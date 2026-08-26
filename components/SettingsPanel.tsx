@@ -171,7 +171,10 @@ export function SettingsPanel({ cwd, sessionId, initialSection, onClose, onPlugi
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
       className="settings-dialog-backdrop"
     >
-      <div className="settings-dialog-surface">
+      <div
+        className="settings-dialog-surface"
+        data-pi-web-floating-dialog="true"
+      >
         <div className="settings-dialog-header">
           <strong className="settings-dialog-title">{t("settings.title")}</strong>
           <select

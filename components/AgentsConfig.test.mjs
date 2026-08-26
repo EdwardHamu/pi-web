@@ -82,6 +82,7 @@ test("reuses the ChatInput model selector with scoped models", () => {
   assert.match(modelSelectorSource, /filterModelOptions\(sortedOptions, filter\)/);
   assert.match(modelSelectorSource, /modelsByProvider\.map/);
   assert.match(modelSelectorSource, /event\.key !== "Escape" \|\| !open[\s\S]*?event\.preventDefault\(\)[\s\S]*?event\.stopPropagation\(\)/);
+  assert.match(modelSelectorSource, /role="listbox"[\s\S]*?data-pi-web-floating-menu="true"[\s\S]*?data-pi-web-glass="true"[\s\S]*?position: "fixed"/);
   assert.match(source, /agents\.modelUnavailable/);
   assert.doesNotMatch(source, /placeholder="provider\/modelId"/);
 });

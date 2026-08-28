@@ -17,7 +17,7 @@ import { getProjectTrustStatus, projectTrustReloadOptions } from "./project-trus
 import { persistExplicitStartupPreferences } from "./startup-preferences";
 import { notifySessionComplete } from "./web-push";
 import type { SlashCommandInfo } from "@earendil-works/pi-coding-agent";
-import type { AgentSessionLike, ExtensionUiContextLike, ToolInfo } from "./pi-types";
+import type { AgentSessionLike, ExtensionUiContextLike, ModelLike, ToolInfo } from "./pi-types";
 import type {
   ExtensionUiRequest,
   ExtensionUiResponse,
@@ -147,6 +147,8 @@ export interface RpcSessionStartOptions {
   toolNames?: string[];
   initialModel?: { provider: string; modelId: string };
   allowInitialModelFallback?: boolean;
+  /** Do not turn a browser-supplied implicit default into a saved preference. */
+  persistModelDefault?: boolean;
   thinkingLevel?: ThinkingLevel;
 }
 
@@ -441,6 +443,38 @@ export class AgentSessionWrapper {
     return release;
   }
 
+  /**
+   * Align a prompt with the model selected by the client before the SDK
+   * snapshots the prompt context. This is needed when an existing wrapper was
+   * started from stale state or when a model switch and prompt arrive close
+   * together.
+   */
+  private async applyRequestedModel(command: Record<string, unknown>): Promise<ModelLike | null> {
+    const hasProvider = command.provider !== undefined;
+    const hasModelId = command.modelId !== undefined;
+    if (!hasProvider && !hasModelId) return null;
+    if (typeof command.provider !== "string" || typeof command.modelId !== "string") {
+      throw new Error("provider and modelId must be provided together");
+    }
+
+    let model = this.inner.modelRuntime.getModel(command.provider, command.modelId);
+    if (!model) {
+      await this.inner.modelRuntime.refresh({ allowNetwork: false });
+      model = this.inner.modelRuntime.getModel(command.provider, command.modelId);
+    }
+    if (!model) throw new Error(`Model not found: ${command.provider}/${command.modelId}`);
+
+    const currentModel = this.inner.model;
+    if (
+      !currentModel
+      || currentModel.provider !== model.provider
+      || currentModel.id !== model.id
+    ) {
+      await this.inner.setModel(model);
+    }
+    return model;
+  }
+
   private resetIdleTimer(): void {
     if (this.idleTimer) clearTimeout(this.idleTimer);
     if (!this._alive) return;
@@ -553,6 +587,7 @@ export class AgentSessionWrapper {
         // this submission starts a run or joins its streaming queue.
         const releaseAdmission = await this.acquirePromptAdmission();
         try {
+          await this.applyRequestedModel(command);
           if (this.inner.isBashRunning) {
             throw new Error("Cannot send a prompt while a shell command is running");
           }
@@ -681,13 +716,14 @@ export class AgentSessionWrapper {
 
       case "set_model": {
         const { provider, modelId } = command as { provider: string; modelId: string };
-        let model = this.inner.modelRuntime.getModel(provider, modelId);
-        if (!model) {
-          await this.inner.modelRuntime.refresh({ allowNetwork: false });
-          model = this.inner.modelRuntime.getModel(provider, modelId);
+        const releaseAdmission = await this.acquirePromptAdmission();
+        let model: ModelLike | null;
+        try {
+          model = await this.applyRequestedModel({ provider, modelId });
+        } finally {
+          releaseAdmission();
         }
         if (!model) throw new Error(`Model not found: ${provider}/${modelId}`);
-        await this.inner.setModel(model);
         invalidateModelsCache();
         invalidateSessionListCache();
         return { id: model.id, provider: model.provider };
@@ -1916,7 +1952,7 @@ export async function startRpcSession(
   cwd: string | undefined,
   options: RpcSessionStartOptions = {},
 ): Promise<{ session: AgentSessionWrapper; realSessionId: string }> {
-  const { initialModel, allowInitialModelFallback, thinkingLevel } = options;
+  const { initialModel, allowInitialModelFallback, persistModelDefault, thinkingLevel } = options;
   const requestedToolNames = options.toolNames === undefined
     ? undefined
     : validateSessionToolSelection(options.toolNames);
@@ -2057,7 +2093,9 @@ export async function startRpcSession(
     const persistedPreferences = await persistExplicitStartupPreferences(
       services.settingsManager,
       {
-        ...(effectiveInitialModel ? { model: effectiveInitialModel } : {}),
+        ...(persistModelDefault !== false && effectiveInitialModel
+          ? { model: effectiveInitialModel }
+          : {}),
         ...(thinkingLevel ? { thinkingLevel } : {}),
       },
       {

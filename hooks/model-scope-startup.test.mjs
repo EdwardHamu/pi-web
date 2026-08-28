@@ -4,14 +4,17 @@ import test from "node:test";
 
 const source = await readFile(new URL("./useAgentSession.ts", import.meta.url), "utf8");
 
-test("new-session startup sends only explicit browser overrides", () => {
+test("new-session startup sends the model currently shown by the browser", () => {
   const ensureSource = source.slice(
     source.indexOf("const ensureNewSession"),
     source.indexOf("const loadSlashCommands"),
   );
 
-  assert.match(ensureSource, /const selectedModel = newSessionModelOverrideRef\.current;/);
-  assert.doesNotMatch(ensureSource, /newSessionModel \?\? newSessionDefaultModel/);
+  assert.match(
+    ensureSource,
+    /const selectedModel = newSessionModelOverrideRef\.current\s*\?\?\s*newSessionDefaultModelRef\.current;/,
+  );
+  assert.match(ensureSource, /selectedModel && !explicitModel \? \{ persistModelDefault: false \} : \{\}/);
   assert.match(ensureSource, /const selectedThinkingLevel = thinkingLevelOverrideRef\.current;/);
   assert.doesNotMatch(ensureSource, /thinkingLevel !== "auto"/);
 });
@@ -24,7 +27,7 @@ test("new-session startup adopts server state only while explicit overrides are 
 
   assert.match(
     ensureSource,
-    /result\.model && newSessionModelOverrideRef\.current === selectedModel/,
+    /result\.model && \(!selectedModel \|\| sameSelectedModel\(currentSelection, selectedModel\)\)/,
   );
   assert.match(ensureSource, /setPendingModel\(result\.model\)/);
   assert.match(ensureSource, /setNewSessionDefaultModel\(result\.model\)/);

@@ -30,9 +30,17 @@ test("session reloads cannot clear an in-flight optimistic model", () => {
   );
 });
 
+test("promoted sessions restore the live model before JSONL persistence catches up", () => {
+  assert.match(source, /model\?: \{ provider: string; id: string \} \| null/);
+  assert.match(
+    loadSessionSource,
+    /liveState\.model !== undefined && !d\.context\.model[\s\S]*?modelId: liveState\.model\.id[\s\S]*?modelSwitchPendingRef\.current \? current : liveModel/,
+  );
+});
+
 test("a completed model switch reloads canonical session state and reports failures", () => {
   assert.match(switchSource, /modelSwitchPendingRef\.current = false;\s*await loadSession\(sid\)/);
-  assert.match(switchSource, /setCurrentModelOverride\(previousOverride\)/);
+  assert.match(switchSource, /setCurrentModelOverride\(previousModel\)/);
   assert.match(switchSource, /Failed to switch model:/);
 });
 
@@ -54,4 +62,16 @@ test("fresh-session model selection uses the live override ref", () => {
   assert.match(switchSource, /newSessionModelOverrideRef\.current = selectedModel/);
   assert.match(switchSource, /await applyNewSessionModel\(sid\)/);
   assert.match(switchSource, /Failed to switch model:/);
+});
+
+test("prompts wait for existing-session model switches and carry the selected model", () => {
+  const sendSource = source.slice(
+    source.indexOf("  const handleSend = useCallback"),
+    source.indexOf("  const executeBash = useCallback"),
+  );
+
+  assert.match(sendSource, /existingModelChangeRef\.current/);
+  assert.match(sendSource, /const promptModel = currentModelRef\.current/);
+  assert.match(sendSource, /provider: promptModel\.provider, modelId: promptModel\.modelId/);
+  assert.match(switchSource, /existingModelChangeRef\.current = run\.catch\(\(\) => \{\}\)/);
 });

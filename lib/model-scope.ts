@@ -186,7 +186,12 @@ export function selectInitialModelScope(
   const defaultVisible = !requested && !fallbackScoped && defaultRef
     ? scope.visible.find((model) => matchesModel(model, defaultRef))
     : undefined;
-  const selectedModel = requested ?? fallbackScoped?.model ?? defaultVisible;
+  const selectedModel = requested
+    ?? fallbackScoped?.model
+    ?? defaultVisible
+    // Keep the model returned to the browser identical to the model selected
+    // by startRpcSession when there is no saved default or explicit scope.
+    ?? (!requested ? scope.visible[0] : undefined);
   const scopedSelection = requestedScoped ?? fallbackScoped;
   const thinkingLevel = options.thinkingLevel ?? scopedSelection?.thinkingLevel;
 

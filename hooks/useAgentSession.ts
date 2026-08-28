@@ -68,6 +68,8 @@ interface LastAssistantTextResponse {
 
 type AgentStateResponse = {
   contextUsage?: { percent: number | null; contextWindow: number; tokens: number | null } | null;
+  /** RPC get_state uses the SDK's `id` field; UI context uses `modelId`. */
+  model?: { provider: string; id: string } | null;
   systemPrompt?: string;
   thinkingLevel?: string;
   isStreaming?: boolean;
@@ -350,12 +352,15 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   const ensuringNewSessionRef = useRef<Promise<string | null> | null>(null);
   const newSessionPromotedRef = useRef(false);
   const newSessionModelOverrideRef = useRef<SelectedModel | null>(null);
+  const newSessionDefaultModelRef = useRef<SelectedModel | null>(null);
   const newSessionModelAppliedRef = useRef<SelectedModel | null>(null);
   const newSessionModelChangeRef = useRef<Promise<void>>(Promise.resolve());
   const thinkingLevelOverrideRef = useRef<Exclude<ThinkingLevelOption, "auto"> | null>(null);
   const promptRunIdRef = useRef(0);
   const optimisticUserMessageKeyRef = useRef<string | null>(null);
   const modelSwitchPendingRef = useRef(false);
+  const currentModelRef = useRef<SelectedModel | null>(null);
+  const existingModelChangeRef = useRef<Promise<void>>(Promise.resolve());
   const draftKeyAliasesRef = useRef(new Map<string, string>());
   const sessionHookMountedRef = useRef(true);
 
@@ -398,6 +403,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   }, []);
 
   const currentModel = currentModelOverride ?? data?.context.model ?? pendingModel ?? null;
+  currentModelRef.current = currentModel;
   const displayModel = isNew ? (newSessionModel ?? newSessionDefaultModel) : currentModel;
   const composerDraftKey = session?.id ?? newSessionDraftKey ?? undefined;
 
@@ -502,6 +508,17 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
 
         const liveState = agentState.state;
         if (liveState) {
+          // A newly promoted session can have an empty/incomplete JSONL file
+          // while its live RPC already knows the effective model. Prefer that
+          // live value until the persisted context catches up.
+          if (liveState.model !== undefined && !d.context.model) {
+            const liveModel = liveState.model
+              ? { provider: liveState.model.provider, modelId: liveState.model.id }
+              : null;
+            setCurrentModelOverride((current) => (
+              modelSwitchPendingRef.current ? current : liveModel
+            ));
+          }
           if (liveState.contextUsage !== undefined) setContextUsage(liveState.contextUsage ?? null);
           if (liveState.systemPrompt !== undefined) setSystemPrompt(liveState.systemPrompt ?? null);
           if (liveState.thinkingLevel !== undefined) setThinkingLevel((liveState.thinkingLevel as ThinkingLevelOption) ?? "auto");
@@ -627,9 +644,12 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     if (ensuringNewSessionRef.current) return ensuringNewSessionRef.current;
 
     const promise = (async () => {
-      // Only send explicit user overrides. The server resolves the current
-      // enabledModels scope atomically with AgentSession construction.
-      const selectedModel = newSessionModelOverrideRef.current;
+      // Send the effective fresh-session selection, including the default
+      // shown by the selector. This keeps the model displayed before the first
+      // prompt and the model used by AgentSession on one value.
+      const selectedModel = newSessionModelOverrideRef.current
+        ?? newSessionDefaultModelRef.current;
+      const explicitModel = newSessionModelOverrideRef.current;
       const selectedThinkingLevel = thinkingLevelOverrideRef.current;
       if (selectedModel) setPendingModel(selectedModel);
       const toolNames = getToolNamesForPreset(toolPreset);
@@ -641,6 +661,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
           type: "ensure_session",
           toolNames,
           ...(selectedModel ? { provider: selectedModel.provider, modelId: selectedModel.modelId } : {}),
+          ...(selectedModel && !explicitModel ? { persistModelDefault: false } : {}),
           ...(selectedThinkingLevel
             ? { thinkingLevel: selectedThinkingLevel }
             : {}),
@@ -657,9 +678,14 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       // Keep the server's effective model so a selection made while startup
       // was in flight can be applied immediately before the first prompt.
       newSessionModelAppliedRef.current = result.model ?? null;
-      if (result.model && newSessionModelOverrideRef.current === selectedModel) {
+      const currentSelection = newSessionModelOverrideRef.current
+        ?? newSessionDefaultModelRef.current;
+      if (result.model && (!selectedModel || sameSelectedModel(currentSelection, selectedModel))) {
         setPendingModel(result.model);
-        if (!selectedModel) setNewSessionDefaultModel(result.model);
+        if (!newSessionModelOverrideRef.current) {
+          newSessionDefaultModelRef.current = result.model;
+          setNewSessionDefaultModel(result.model);
+        }
       }
       if (
         result.thinkingLevel
@@ -1390,19 +1416,34 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         await applyNewSessionModel(sid);
         await ensureEventsConnected(sid);
         promptRequestStarted = true;
+        const promptModel = newSessionModelOverrideRef.current
+          ?? newSessionDefaultModelRef.current
+          ?? newSessionModelAppliedRef.current;
         await sendAgentCommand(sid, {
           type: "prompt",
           message,
+          ...(promptModel ? { provider: promptModel.provider, modelId: promptModel.modelId } : {}),
           ...(piImages?.length ? { images: piImages } : {}),
         });
         promoteNewSession(1, message);
       } else if (session) {
         sentSessionId = session.id;
+        // A model switch updates the selector optimistically before the
+        // server has acknowledged set_model. Do not let this prompt overtake
+        // that write; retrying the exact target in the server route also
+        // protects cold-started or stale in-memory wrappers.
+        while (true) {
+          const pendingModelChange = existingModelChangeRef.current;
+          await pendingModelChange;
+          if (pendingModelChange === existingModelChangeRef.current) break;
+        }
         await ensureEventsConnected(session.id);
         promptRequestStarted = true;
+        const promptModel = currentModelRef.current;
         await sendAgentCommand(session.id, {
           type: "prompt",
           message,
+          ...(promptModel ? { provider: promptModel.provider, modelId: promptModel.modelId } : {}),
           ...(piImages?.length ? { images: piImages } : {}),
         });
       } else {
@@ -1555,32 +1596,38 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     const sid = sessionIdRef.current;
     if (!sid || modelSwitchPendingRef.current) return;
     const target = { provider, modelId };
-    const previousOverride = currentModelOverride;
+    const previousModel = currentModelRef.current;
     modelSwitchPendingRef.current = true;
+    currentModelRef.current = target;
     setCurrentModelOverride(target);
     setModelSwitching(true);
-    try {
-      await sendAgentCommand(sid, { type: "set_model", provider, modelId });
-      // Pi persists model_change synchronously. Reload the canonical session so
-      // the model, thinking level, and active leaf all advance together.
-      modelSwitchPendingRef.current = false;
-      await loadSession(sid);
-    } catch (e) {
-      console.error("Failed to set model:", e);
-      modelSwitchPendingRef.current = false;
-      setCurrentModelOverride(previousOverride);
-      addNotice({
-        type: "error",
-        message: `Failed to switch model: ${e instanceof Error ? e.message : String(e)}`,
-      });
-      // A failed response can still follow a server-side write (for example, a
-      // dropped connection), so let the session file settle the displayed model.
-      await loadSession(sid);
-    } finally {
-      modelSwitchPendingRef.current = false;
-      setModelSwitching(false);
-    }
-  }, [addNotice, applyNewSessionModel, currentModelOverride, isNew, loadSession, setNewSessionModel]);
+    const run = (async () => {
+      try {
+        await sendAgentCommand(sid, { type: "set_model", provider, modelId });
+        // Pi persists model_change synchronously. Reload the canonical session so
+        // the model, thinking level, and active leaf all advance together.
+        modelSwitchPendingRef.current = false;
+        await loadSession(sid);
+      } catch (e) {
+        console.error("Failed to set model:", e);
+        modelSwitchPendingRef.current = false;
+        currentModelRef.current = previousModel;
+        setCurrentModelOverride(previousModel);
+        addNotice({
+          type: "error",
+          message: `Failed to switch model: ${e instanceof Error ? e.message : String(e)}`,
+        });
+        // A failed response can still follow a server-side write (for example, a
+        // dropped connection), so let the session file settle the displayed model.
+        await loadSession(sid);
+      } finally {
+        modelSwitchPendingRef.current = false;
+        setModelSwitching(false);
+      }
+    })();
+    existingModelChangeRef.current = run.catch(() => {});
+    await run;
+  }, [addNotice, applyNewSessionModel, isNew, loadSession, setNewSessionModel]);
 
   const handleCompact = useCallback(async () => {
     const sid = sessionIdRef.current;
@@ -1618,7 +1665,11 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
         ? nextModelList.find((m) => m.id === d.defaultModel?.modelId && m.provider === d.defaultModel?.provider)
         : undefined;
       const displayModel = match ?? nextModelList[0];
-      setNewSessionDefaultModel(displayModel ? { provider: displayModel.provider, modelId: displayModel.id } : null);
+      const nextDefaultModel = displayModel
+        ? { provider: displayModel.provider, modelId: displayModel.id }
+        : null;
+      newSessionDefaultModelRef.current = nextDefaultModel;
+      setNewSessionDefaultModel(nextDefaultModel);
       // An `enabledModels` pattern may pin a thinking level (`anthropic/*:high`).
       // Like pi, apply it to the model a new session starts with.
       const pinned = displayModel && d.thinkingLevelPins?.[`${displayModel.provider}/${displayModel.id}`];

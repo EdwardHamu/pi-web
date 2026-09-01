@@ -265,6 +265,8 @@ body[data-pi-web-glass-wallpaper="on"] .pi-web-glass-surface.right-panel-closed:
    static layer while the message subtree remains independently paintable. */
 body[data-pi-web-glass-wallpaper="on"] [data-pi-web-chat-glass-layer="true"] {
   background: rgb(238 242 247 / 0.12) !important;
+  isolation: isolate;
+  will-change: contents;
   contain: paint;
   backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));
   -webkit-backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));

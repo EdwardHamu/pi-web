@@ -1914,6 +1914,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
           })()}
           <div
             data-pi-web-composer-surface="true"
+            className="pi-web-glass-surface"
             style={{
               minWidth: 0,
               display: "flex",

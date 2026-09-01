@@ -22,6 +22,7 @@ import { mergeSessionStats, type SessionFileStats } from "@/lib/session-stats";
 import { userMessageKey } from "@/lib/prompt-recovery";
 import { AgentEventConnection } from "@/lib/agent-event-connection";
 import { getToolExecutionProgress } from "@/lib/tool-execution-progress";
+import { wakeRunningSessionPoll } from "@/lib/running-sessions";
 import {
   CHAT_SCROLL_REATTACH_TOLERANCE,
   CHAT_SCROLL_TAIL_TOLERANCE,
@@ -909,6 +910,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
   const settleUiStage = useCallback(() => {
     const wasRunning = agentRunningRef.current;
     agentRunningRef.current = false;
+    wakeRunningSessionPoll();
     setAgentRunning(false);
     setAgentPhase(null);
     setRetryInfo(null);
@@ -1393,6 +1395,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     optimisticUserMessageKeyRef.current = userMessageKey(userMsg);
     promptRunIdRef.current = promptRunId;
     agentRunningRef.current = true;
+    wakeRunningSessionPoll();
     setAgentRunning(true);
     setAgentPhase(isSlashCommandPrompt ? { kind: "running_command" } : { kind: "waiting_model" });
     dispatch({ type: "start" });
@@ -1491,6 +1494,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     if (agentRunningRef.current || bashRunningRef.current) return;
     const inputText = `${excludeFromContext ? "!!" : "!"}${command}`;
     bashRunningRef.current = true;
+    wakeRunningSessionPoll();
     setPendingBash({ command, excludeFromContext });
     setBashRunning(true);
     try {
@@ -1509,6 +1513,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
       restoreSubmission(inputText, undefined, composerDraftKey);
     } finally {
       bashRunningRef.current = false;
+      wakeRunningSessionPoll();
       setPendingBash(null);
       setBashRunning(false);
     }

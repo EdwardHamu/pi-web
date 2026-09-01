@@ -25,9 +25,11 @@ test("polls running sessions only while the tab is visible", () => {
   assert.match(source, /document\.addEventListener\("visibilitychange", onVisibilityChange\)/);
 });
 
-test("exposes the polled running-session set to the shell", () => {
-  assert.match(source, /onRunningSessionIdsChange\?: \(ids: Set<string>\) => void/);
-  assert.match(source, /onRunningSessionIdsChange\?\.\(runningSessionIds\)/);
+test("publishes running snapshots through the deduplicated external store", () => {
+  assert.match(source, /const runningSessionIds = useRunningSessionIds\(\)/);
+  assert.match(source, /publishRunningSessionIds\(data\.runningSessionIds \?\? \[\]\)/);
+  assert.match(source, /getNextRunningSessionPollDelay\(nextDelayMs, nextRunningSessionIds\.size\)/);
+  assert.doesNotMatch(source, /onRunningSessionIdsChange/);
 });
 
 test("exposes the loaded session catalog to the shell", () => {

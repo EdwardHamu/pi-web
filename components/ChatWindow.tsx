@@ -451,6 +451,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
   const messageCwd = session?.cwd ?? newSessionCwd ?? undefined;
   const messageContentRef = useRef<HTMLDivElement | null>(null);
   const chatSurfaceRef = useRef<HTMLDivElement | null>(null);
+  const chatViewportRef = useRef<HTMLDivElement | null>(null);
   const composerHostRef = useRef<HTMLDivElement | null>(null);
   const promptAnchorSpacerRef = useRef<HTMLDivElement | null>(null);
   const promptAnchorSpacerHeightRef = useRef(0);
@@ -460,14 +461,16 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
 
   useLayoutEffect(() => {
     const chatSurface = chatSurfaceRef.current;
+    const chatViewport = chatViewportRef.current;
     const scrollContainer = scrollContainerRef.current;
     const messageColumn = messageContentRef.current;
     const composerHost = composerHostRef.current;
-    if (!chatSurface || !scrollContainer || !messageColumn || !composerHost) return;
+    if (!chatSurface || !chatViewport || !scrollContainer || !messageColumn || !composerHost) return;
 
     let frame: number | null = null;
     const updateFloatingLayout = () => {
       frame = null;
+      const viewportRect = chatViewport.getBoundingClientRect();
       const columnRect = messageColumn.getBoundingClientRect();
       const scrollRect = scrollContainer.getBoundingClientRect();
       const composerRect = composerHost.getBoundingClientRect();
@@ -475,6 +478,10 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       chatSurface.style.setProperty("--pi-web-message-column-left", `${columnRect.left}px`);
       chatSurface.style.setProperty("--pi-web-message-column-width", `${columnRect.width}px`);
       chatSurface.style.setProperty("--pi-web-message-glass-top", `${scrollRect.top}px`);
+      chatSurface.style.setProperty("--pi-web-chat-glass-left", `${columnRect.left - viewportRect.left}px`);
+      chatSurface.style.setProperty("--pi-web-chat-glass-top", `${scrollRect.top - viewportRect.top}px`);
+      chatSurface.style.setProperty("--pi-web-chat-glass-width", `${columnRect.width}px`);
+      chatSurface.style.setProperty("--pi-web-chat-glass-height", `${scrollRect.height}px`);
       chatSurface.style.setProperty("--pi-web-composer-height", `${composerRect.height}px`);
     };
     const scheduleFloatingLayoutUpdate = () => {
@@ -486,6 +493,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
     const observer = typeof ResizeObserver === "undefined"
       ? null
       : new ResizeObserver(scheduleFloatingLayoutUpdate);
+    observer?.observe(chatViewport);
     observer?.observe(chatSurface);
     observer?.observe(scrollContainer);
     observer?.observe(composerHost);
@@ -498,6 +506,10 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       chatSurface.style.removeProperty("--pi-web-message-column-left");
       chatSurface.style.removeProperty("--pi-web-message-column-width");
       chatSurface.style.removeProperty("--pi-web-message-glass-top");
+      chatSurface.style.removeProperty("--pi-web-chat-glass-left");
+      chatSurface.style.removeProperty("--pi-web-chat-glass-top");
+      chatSurface.style.removeProperty("--pi-web-chat-glass-width");
+      chatSurface.style.removeProperty("--pi-web-chat-glass-height");
       chatSurface.style.removeProperty("--pi-web-composer-height");
     };
   }, [error, isEmptyNew, loading, scrollContainerRef, session?.id]);
@@ -682,7 +694,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
             {[0, 0.8, 1.6].map((delay) => (
               <div
                 key={delay}
-                className="absolute h-[720px] w-[720px] rounded-full border-[1.5px] border-solid border-[rgba(37,99,235,0.5)] animate-[drop-ripple_2.4s_ease-out_infinite_backwards]"
+                className="pi-web-animation-layer drop-ripple-animation absolute h-[720px] w-[720px] rounded-full border-[1.5px] border-solid border-[rgba(37,99,235,0.5)] animate-[drop-ripple_2.4s_ease-out_infinite_backwards]"
                 style={{ transformOrigin: "center", animationDelay: `${delay}s` }}
               />
             ))}
@@ -773,8 +785,13 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
         </div>
       ) : (
       <>
-      <div className="absolute inset-0 flex min-w-0 overflow-hidden">
+      <div ref={chatViewportRef} className="absolute inset-0 flex min-w-0 overflow-hidden">
+        <div aria-hidden="true" data-pi-web-chat-glass-layer="true" />
         <div ref={scrollContainerRef} data-pi-web-chat-scroll="true" className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pt-4 [scrollbar-width:none]">
+          <div
+            data-pi-web-chat-content-layer="true"
+            className="pi-web-chat-content-layer"
+          >
           <div style={{ minWidth: 0, padding: `0 ${CHAT_COLUMN_PADDING}px` }}>
             <div ref={messageContentRef} style={{ width: "100%", minWidth: 0, maxWidth: 820, margin: "0 auto" }} data-pi-web-message-column="true">
             {(() => {
@@ -965,39 +982,46 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                 </>
               );
             })()}
-            {streamState.isStreaming && hasStreamingContent && streamState.streamingMessage && (
-              <MessageView message={streamState.streamingMessage as AgentMessage} isStreaming modelNames={modelNames} cwd={messageCwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} />
-            )}
+            <div
+              className="pi-web-chat-live-layer"
+              data-pi-web-chat-live-layer="true"
+              data-active={sessionBusy || streamState.isStreaming ? "true" : "false"}
+            >
+              {streamState.isStreaming && hasStreamingContent && streamState.streamingMessage && (
+                <MessageView message={streamState.streamingMessage as AgentMessage} isStreaming modelNames={modelNames} cwd={messageCwd} onOpenFile={onOpenFile} onOpenSession={onOpenSession} />
+              )}
 
-            {agentRunning && !hasStreamingContent && agentPhase && (
-              <div className="break-words py-2 text-[13px] text-text-muted">
-                <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t)}</span>
-              </div>
-            )}
+              {agentRunning && !hasStreamingContent && agentPhase && (
+                <div className="break-words py-2 text-[13px] text-text-muted">
+                  <span className="pi-web-animation-layer running-status-animation animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t)}</span>
+                </div>
+              )}
 
-            {bashRunning && !pendingBash && (
-              <div className="py-2 text-[13px] text-text-muted">
-                 <span className="animate-[pulse_1.5s_infinite]">{t("chat.runningCommand")}</span>
-              </div>
-            )}
+              {bashRunning && !pendingBash && (
+                <div className="py-2 text-[13px] text-text-muted">
+                   <span className="pi-web-animation-layer running-status-animation animate-[pulse_1.5s_infinite]">{t("chat.runningCommand")}</span>
+                </div>
+              )}
 
-            {pendingBash && (
-              <MessageView
-                message={{
-                  role: "bashExecution",
-                  command: pendingBash.command,
-                  output: "",
-                  excludeFromContext: pendingBash.excludeFromContext,
-                } as BashExecutionMessage}
-                sessionId={session?.id ?? sessionIdRef.current ?? undefined}
-                onOpenSession={onOpenSession}
-              />
-            )}
+              {pendingBash && (
+                <MessageView
+                  message={{
+                    role: "bashExecution",
+                    command: pendingBash.command,
+                    output: "",
+                    excludeFromContext: pendingBash.excludeFromContext,
+                  } as BashExecutionMessage}
+                  sessionId={session?.id ?? sessionIdRef.current ?? undefined}
+                  onOpenSession={onOpenSession}
+                />
+              )}
+            </div>
 
             <div ref={promptAnchorSpacerRef} aria-hidden="true" />
 
             <div ref={messagesEndRef} />
             </div>
+          </div>
           </div>
         </div>
         {isMobile ? null : (

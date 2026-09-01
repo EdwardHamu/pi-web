@@ -10,6 +10,13 @@ import { skillExpansionToCommand } from "@/lib/slash-display";
 import { getProjectActivity, getRecentProjects, sessionsForProject } from "@/lib/project-groups";
 import { workspaceKeyOf } from "@/lib/workspace-memory";
 import { formatRelativeTime } from "@/lib/i18n/format";
+import { useRunningSessionIds } from "@/hooks/useRunningSessions";
+import {
+  getNextRunningSessionPollDelay,
+  publishRunningSessionIds,
+  RUNNING_SESSION_POLL_ACTIVE_MS,
+  RUNNING_SESSION_POLL_WAKE_EVENT,
+} from "@/lib/running-sessions";
 import { useI18n } from "@/hooks/useI18n";
 import { DirectoryPicker } from "./DirectoryPicker";
 import { FileExplorer, type FileExplorerHandle } from "./FileExplorer";
@@ -104,7 +111,6 @@ interface Props {
   /** Fired when a session that is not currently selected finishes running.
    *  Lets the app play a cross-workspace completion tone. */
   onBackgroundTaskDone?: () => void;
-  onRunningSessionIdsChange?: (ids: Set<string>) => void;
   onSessionsChange?: (sessions: SessionInfo[]) => void;
 }
 
@@ -142,7 +148,7 @@ interface ValidatedProject {
 
 const UNREAD_SESSIONS_STORAGE_KEY = "pi-web:unread-session-ids";
 const LAST_CUSTOM_CWD_STORAGE_KEY = "pi-web:last-custom-cwd";
-const RUNNING_SESSIONS_POLL_MS = 2500;
+const RUNNING_SESSIONS_POLL_MS = RUNNING_SESSION_POLL_ACTIVE_MS;
 
 function loadLastCustomCwd(): string {
   if (typeof window === "undefined") return "";
@@ -354,7 +360,7 @@ function PiWebTitle() {
   );
 }
 
-export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSession, initialSessionId, skipInitialProjectSelection, onInitialRestoreDone, refreshKey, onSessionDeleted, selectedCwd: selectedCwdProp, onCwdChange, onOpenFile, explorerRefreshKey, onExplorerRefresh, onAtMention, onAtMentions, onBackgroundTaskDone, onRunningSessionIdsChange, onSessionsChange }: Props) {
+export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSession, initialSessionId, skipInitialProjectSelection, onInitialRestoreDone, refreshKey, onSessionDeleted, selectedCwd: selectedCwdProp, onCwdChange, onOpenFile, explorerRefreshKey, onExplorerRefresh, onAtMention, onAtMentions, onBackgroundTaskDone, onSessionsChange }: Props) {
   const { t } = useI18n();
   const [allSessions, setAllSessions] = useState<SessionInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -389,11 +395,11 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
   const [changesCollapsed, setChangesCollapsed] = useState(true);
   const [sessionRefreshDone, setSessionRefreshDone] = useState(false);
   const [explorerRefreshDone, setExplorerRefreshDone] = useState(false);
-  const [runningSessionIds, setRunningSessionIds] = useState<Set<string>>(() => new Set());
+  const runningSessionIds = useRunningSessionIds();
   const [unreadSessionIds, setUnreadSessionIds] = useState<Set<string>>(() => loadUnreadSessionIds());
   const [pinnedSessionIds, setPinnedSessionIds] = useState<Set<string>>(() => new Set());
   const [pinnedSessionsHydrated, setPinnedSessionsHydrated] = useState(false);
-  const previousRunningSessionIdsRef = useRef<Set<string>>(new Set());
+  const previousRunningSessionIdsRef = useRef<ReadonlySet<string>>(new Set());
   const currentSuppressedCompletionSessionIdsRef = useRef<Set<string>>(new Set());
   const previousSuppressedCompletionSessionIdsRef = useRef<Set<string>>(new Set());
   // Once polling has delivered a snapshot it is the source of truth for
@@ -422,7 +428,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
         currentSuppressedCompletionSessionIdsRef.current = new Set(
           data.completionNotificationSuppressedSessionIds ?? [],
         );
-        setRunningSessionIds(new Set(data.runningSessionIds ?? []));
+        publishRunningSessionIds(data.runningSessionIds ?? []);
       }
       // Drop markers for deleted sessions and for subagents, whose completion
       // is intentionally silent even if an older client marked them unread.
@@ -496,6 +502,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let controller: AbortController | null = null;
+    let nextDelayMs = RUNNING_SESSIONS_POLL_MS;
 
     const clearTimer = () => {
       if (timer) clearTimeout(timer);
@@ -505,7 +512,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     const schedule = () => {
       clearTimer();
       if (stopped || document.visibilityState !== "visible") return;
-      timer = setTimeout(() => void poll(), RUNNING_SESSIONS_POLL_MS);
+      timer = setTimeout(() => void poll(), nextDelayMs);
     };
 
     const poll = async () => {
@@ -528,18 +535,29 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
         currentSuppressedCompletionSessionIdsRef.current = new Set(
           data.completionNotificationSuppressedSessionIds ?? [],
         );
-        setRunningSessionIds(new Set(data.runningSessionIds ?? []));
+        const nextRunningSessionIds = new Set(data.runningSessionIds ?? []);
+        publishRunningSessionIds(nextRunningSessionIds);
+        nextDelayMs = getNextRunningSessionPollDelay(nextDelayMs, nextRunningSessionIds.size);
       } catch {
         // Keep the last known state; the next visible-tab poll retries.
       } finally {
-        if (controller === current) controller = null;
+        // A visibility change or wake event may have replaced this request.
+        // Only the current request is allowed to schedule the next one.
+        if (controller !== current) return;
+        controller = null;
         schedule();
       }
     };
 
+    const wake = () => {
+      if (stopped || document.visibilityState !== "visible") return;
+      nextDelayMs = RUNNING_SESSIONS_POLL_MS;
+      void poll();
+    };
+
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        void poll();
+        wake();
         return;
       }
       clearTimer();
@@ -549,17 +567,17 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
 
     void poll();
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener(RUNNING_SESSION_POLL_WAKE_EVENT, wake);
+    window.addEventListener("online", wake);
     return () => {
       stopped = true;
       clearTimer();
       controller?.abort();
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener(RUNNING_SESSION_POLL_WAKE_EVENT, wake);
+      window.removeEventListener("online", wake);
     };
   }, []);
-
-  useEffect(() => {
-    onRunningSessionIdsChange?.(runningSessionIds);
-  }, [onRunningSessionIdsChange, runningSessionIds]);
 
   useEffect(() => {
     onSessionsChange?.(allSessions);
@@ -1860,21 +1878,13 @@ function RunningSessionIndicator() {
         color: "var(--accent)",
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
+      <svg className="pi-web-animation-layer running-session-spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
         <g>
           <path
             d="M21 12a9 9 0 1 1-3.8-7.4"
             stroke="currentColor"
             strokeWidth="2.8"
             strokeLinecap="round"
-          />
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from="0 12 12"
-            to="360 12 12"
-            dur="0.9s"
-            repeatCount="indefinite"
           />
         </g>
       </svg>
@@ -1900,10 +1910,7 @@ function UnreadSessionIndicator() {
     >
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style={{ display: "block" }}>
         <circle cx="7" cy="7" r="2.5" fill="currentColor" />
-        <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.4" opacity="0.32">
-          <animate attributeName="r" values="3;6;3" dur="1.6s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.32;0;0.32" dur="1.6s" repeatCount="indefinite" />
-        </circle>
+        <circle className="pi-web-animation-layer running-session-pulse" cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.4" opacity="0.32" />
       </svg>
     </span>
   );
@@ -1928,10 +1935,9 @@ function showProjectActivity(
           aria-label={`${t("sidebar.agentRunning")} (${activity.running})`}
           style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "var(--accent)", fontSize: 10, fontFamily: "var(--font-mono)" }}
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
+          <svg className="pi-web-animation-layer running-session-spinner" width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
             <g>
               <path d="M21 12a9 9 0 1 1-3.8-7.4" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" />
-              <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.9s" repeatCount="indefinite" />
             </g>
           </svg>
           {activity.running}

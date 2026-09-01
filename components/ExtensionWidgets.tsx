@@ -156,7 +156,7 @@ export function ExtensionWidgets({ widgets }: { widgets: ExtensionWidgetItem[] }
           const panelId = `${idPrefix}-panel-${index}`;
           const content = (
             <>
-              <span className="extension-widget-update-pulse" aria-hidden="true" />
+              <span className="extension-widget-update-pulse pi-web-animation-layer" aria-hidden="true" />
               <span className="extension-widget-placement" aria-hidden="true">
                 <svg
                   className="extension-widget-placement-icon"

@@ -228,6 +228,48 @@ body[data-pi-web-glass-wallpaper="on"] .right-panel-container {
   -webkit-backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));
 }
 
+/* Keep animated status/content pixels above a dedicated glass backdrop. */
+body[data-pi-web-glass-wallpaper="on"] .pi-web-glass-surface {
+  position: relative;
+  isolation: isolate;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body[data-pi-web-glass-wallpaper="on"] .pi-web-glass-surface::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--pi-glass-surface);
+  contain: paint;
+  backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));
+}
+
+body[data-pi-web-glass-wallpaper="on"] .pi-web-glass-surface.right-panel-closed,
+body[data-pi-web-glass-wallpaper="on"] .pi-web-glass-surface.right-panel-closed::before {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ChatWindow owns the in-flow glass sibling. Keep its tint and blur on that
+   static layer while the message subtree remains independently paintable. */
+body[data-pi-web-glass-wallpaper="on"] [data-pi-web-chat-glass-layer="true"] {
+  background: rgb(238 242 247 / 0.12) !important;
+  contain: paint;
+  backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));
+  -webkit-backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));
+}
+
+html.dark body[data-pi-web-glass-wallpaper="on"] [data-pi-web-chat-glass-layer="true"] {
+  background: rgb(16 22 30 / 0.2) !important;
+}
+
 body[data-pi-web-glass-wallpaper="on"] [role="menuitem"]:hover,
 body[data-pi-web-glass-wallpaper="on"] [role="option"]:hover,
 body[data-pi-web-glass-wallpaper="on"] [role="menuitemradio"]:hover,
@@ -308,6 +350,7 @@ body[data-pi-web-glass-wallpaper="on"] .extension-widget-panel-heading {
   position: fixed;
   z-index: -1;
   pointer-events: none;
+  contain: paint;
   background: rgb(238 242 247 / 0.12);
   backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));
   -webkit-backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));

@@ -1804,36 +1804,63 @@ html body [data-pi-web-app="true"] {
   color: var(--text);
 }
 
-/* The message column owns one viewport-sized glass layer rather than a layer
-   as tall as the full message history. */
-[data-pi-web-message-column="true"] {
+/* Keep the chat viewport transparent and let its sibling glass layer do the
+   expensive backdrop read. The scrolling subtree never owns a filter. */
+[data-pi-web-chat-scroll="true"] {
   position: relative;
-  isolation: isolate;
-  min-height: calc(var(--app-viewport-height, 100dvh) - 132px);
+  z-index: 1;
+  height: 100%;
+  padding-bottom: calc(var(--pi-web-composer-height, 112px) + 16px) !important;
+  scroll-padding-bottom: calc(var(--pi-web-composer-height, 112px) + 16px);
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-[data-pi-web-message-column="true"]::before {
-  content: "";
-  position: fixed;
-  z-index: -1;
-  top: var(--pi-web-message-glass-top, 0px);
-  right: auto;
-  bottom: 0;
-  left: calc(var(--pi-web-message-column-left, 0px) - 10px);
-  width: calc(var(--pi-web-message-column-width, 0px) + 20px);
+/* This layer is outside the scroll subtree, so message updates cannot make
+   the wallpaper-backed blur layer part of the same paint invalidation. */
+[data-pi-web-chat-glass-layer="true"] {
+  position: absolute;
+  z-index: 0;
+  top: var(--pi-web-chat-glass-top, 0px);
+  left: var(--pi-web-chat-glass-left, 0px);
+  width: var(--pi-web-chat-glass-width, 0px);
+  height: var(--pi-web-chat-glass-height, 0px);
   pointer-events: none;
+  contain: paint;
   background: transparent !important;
   -webkit-backdrop-filter: blur(10px) saturate(145%);
   backdrop-filter: blur(10px) saturate(145%);
 }
 
-[data-pi-web-chat-scroll="true"] {
-  height: 100%;
-  padding-bottom: calc(var(--pi-web-composer-height, 112px) + 16px) !important;
-  scroll-padding-bottom: calc(var(--pi-web-composer-height, 112px) + 16px);
+/* Bound ordinary message paints without promoting the entire (potentially
+   very tall) history to a permanent compositor texture. */
+[data-pi-web-chat-content-layer="true"] {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
+  isolation: isolate;
+  contain: paint;
 }
 
-/* Full-screen settings and the file panel use the same transparent glass. */
+/* Streaming text, progress labels, and pending shell commands are the only
+   chat pixels that change continuously. Promote this small tail only while
+   it is live; the history stays on its normal raster path. */
+[data-pi-web-chat-live-layer="true"] {
+  contain: paint;
+  isolation: isolate;
+}
+
+[data-pi-web-chat-live-layer="true"][data-active="true"] {
+  will-change: transform, opacity;
+}
+
+[data-pi-web-message-column="true"] {
+  position: relative;
+  min-height: calc(var(--app-viewport-height, 100dvh) - 132px);
+}
+
+/* Full-screen glass and the file panel use the same transparent glass. */
 [data-pi-web-wallpaper-settings="true"],
 [data-pi-web-right-panel="true"] {
   background: transparent !important;
@@ -1971,4 +1998,100 @@ html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true
 
 html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] .markdown-table-wrap tbody tr:last-child td {
   border-bottom: 0 !important;
+}
+
+/* Keep the expensive backdrop read on a stable layer. The surface itself
+   contains layout and animated content; its pseudo-element samples the
+   wallpaper once and remains below that content in the same isolated stack. */
+.pi-web-glass-surface {
+  position: relative;
+  isolation: isolate;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.pi-web-glass-surface::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--pi-glass-surface, transparent) !important;
+  contain: paint;
+  backdrop-filter: blur(var(--pi-glass-blur, 10px)) saturate(var(--pi-glass-saturation, 145%)) !important;
+  -webkit-backdrop-filter: blur(var(--pi-glass-blur, 10px)) saturate(var(--pi-glass-saturation, 145%)) !important;
+}
+
+/* A translated desktop panel is still mounted for tab-state continuity, but
+   it must not keep a filtered backdrop layer while it is outside the viewport. */
+.pi-web-glass-surface.right-panel-closed,
+.pi-web-glass-surface.right-panel-closed::before {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.pi-web-glass-surface.right-panel-closed {
+  contain: paint;
+}
+
+/* These properties are compositor-friendly and keep animated pixels out of
+   the static glass layer. will-change is scoped to elements that are actually
+   mounted while an activity indicator is active. */
+.pi-web-animation-layer {
+  contain: paint;
+  isolation: isolate;
+}
+
+.running-status-animation {
+  display: inline-block;
+  will-change: opacity;
+}
+
+.running-session-spinner {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spin 0.9s linear infinite;
+  will-change: transform;
+}
+
+.running-session-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: session-activity-pulse 1.6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes session-activity-pulse {
+  0%, 100% { opacity: 0.32; transform: scale(1); }
+  50% { opacity: 0; transform: scale(2); }
+}
+
+.extension-widget-update-pulse,
+.extension-widget-update-pulse::before {
+  contain: paint;
+  isolation: isolate;
+}
+
+.extension-widget-trigger.is-updating .extension-widget-update-pulse::before {
+  will-change: opacity;
+}
+
+/* The drop affordance keeps its ripples, but each ring is an isolated,
+   transform/opacity-only layer rather than a repaint of the chat surface. */
+.drop-ripple-animation {
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .running-status-animation,
+  .running-session-spinner,
+  .running-session-pulse,
+  .drop-ripple-animation,
+  [data-pi-web-chat-live-layer="true"][data-active="true"] {
+    animation: none !important;
+    will-change: auto;
+  }
 }

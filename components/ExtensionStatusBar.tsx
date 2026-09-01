@@ -41,7 +41,7 @@ export function ExtensionStatusBar({
       {statuses.length > 0 && (
         <div
           role="status"
-          className="extension-status-line"
+          className="extension-status-line pi-web-glass-surface"
           aria-label={plainStatusLine}
           title={plainStatusLine}
         >

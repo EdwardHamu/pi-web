@@ -325,8 +325,9 @@ test("connects a selected session when another browser reports it running", () =
   assert.doesNotMatch(source, /void connectEvents\(/);
   assert.match(chatWindowSource, /sessionRunning\?: boolean/);
   assert.match(chatWindowSource, /session, sessionRunning, newSessionCwd/);
-  assert.match(appShellSource, /runningSessionIds\.has\(selectedSession\.id\)/);
-  assert.match(appShellSource, /onRunningSessionIdsChange=\{handleRunningSessionIdsChange\}/);
+  assert.match(appShellSource, /<RunningSessionChatSlot sessionId=\{selectedSession\?\.id \?\? null\}/);
+  assert.match(appShellSource, /const running = useRunningSession\(sessionId\)/);
+  assert.doesNotMatch(appShellSource, /const \[runningSessionIds, setRunningSessionIds\]/);
 });
 
 test("keeps one reducer-owned assistant partial and consumes Pi JSON deltas", () => {

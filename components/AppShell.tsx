@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGlobalKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -24,6 +24,7 @@ import { useIsMobile, useIsNarrowMobile } from "@/hooks/useIsMobile";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { useAudio } from "@/hooks/useAudio";
+import { useRunningSession, useRunningSessionIds } from "@/hooks/useRunningSessions";
 import { copyText } from "@/lib/clipboard";
 import { getFileName } from "@/lib/file-paths";
 import { buildAtMentionText, buildFileAtMentionsText, buildFileLineMentionText } from "@/lib/file-fuzzy";
@@ -71,6 +72,26 @@ const TOP_BAR_ICON_BUTTON_SIZE = 36;
 const LANGUAGE_MENU_WIDTH = 176;
 const AGENT_PANEL_WIDTH = 420;
 
+function RunningSessionChatSlot({
+  sessionId,
+  children,
+}: {
+  sessionId: string | null;
+  children: (running: boolean) => ReactNode;
+}) {
+  const running = useRunningSession(sessionId);
+  return children(running);
+}
+
+function RunningSessionIdsSlot({
+  children,
+}: {
+  children: (runningSessionIds: ReadonlySet<string>) => ReactNode;
+}) {
+  const runningSessionIds = useRunningSessionIds();
+  return children(runningSessionIds);
+}
+
 export function AppShell() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -117,13 +138,6 @@ export function AppShell() {
     [selectedSession?.id, sessionsWithSelection],
   );
   const hasSubagentSessions = Boolean(activeSessionFamily?.subagents.length);
-  const [runningSessionIds, setRunningSessionIds] = useState<Set<string>>(() => new Set());
-  const handleRunningSessionIdsChange = useCallback((ids: Set<string>) => {
-    setRunningSessionIds((previous) => {
-      if (previous.size === ids.size && [...ids].every((id) => previous.has(id))) return previous;
-      return ids;
-    });
-  }, []);
   // The temporary id distinguishes consecutive fresh composers in one cwd.
   const [newSessionCwd, setNewSessionCwd] = useState<string | null>(null);
   const [newSessionDraftId, setNewSessionDraftId] = useState("initial");
@@ -1020,7 +1034,6 @@ export function AppShell() {
         onAtMention={handleAtMention}
         onAtMentions={handleAtMentions}
         onBackgroundTaskDone={handleBackgroundTaskDone}
-        onRunningSessionIdsChange={handleRunningSessionIdsChange}
         onSessionsChange={handleSessionsChange}
       />
       <div style={{ padding: "8px", flexShrink: 0, display: "flex", justifyContent: "space-between", gap: 4 }}>
@@ -2076,13 +2089,17 @@ export function AppShell() {
                 </div>
               )}
               {activeTopPanel === "agents" && activeSessionFamily && selectedSession && (
-                <AgentSessionPanel
-                  rootSession={activeSessionFamily.root}
-                  subagents={activeSessionFamily.subagents}
-                  selectedSessionId={selectedSession.id}
-                  runningSessionIds={runningSessionIds}
-                  onSelectSession={handleSelectSession}
-                />
+                <RunningSessionIdsSlot>
+                  {(runningSessionIds) => (
+                    <AgentSessionPanel
+                      rootSession={activeSessionFamily.root}
+                      subagents={activeSessionFamily.subagents}
+                      selectedSessionId={selectedSession.id}
+                      runningSessionIds={runningSessionIds}
+                      onSelectSession={handleSelectSession}
+                    />
+                  )}
+                </RunningSessionIdsSlot>
               )}
               {activeTopPanel === "system" && (
                 <SystemPromptPanel
@@ -2320,32 +2337,36 @@ export function AppShell() {
           background: "transparent",
         }}>
           {showChat ? (
-            <ChatWindow
-              key={sessionKey}
-              session={selectedSession}
-              sessionRunning={Boolean(selectedSession && runningSessionIds.has(selectedSession.id))}
-              newSessionCwd={effectiveNewSessionCwd}
-              newSessionDraftKey={newSessionDraftKey}
-              onAgentEnd={handleAgentEnd}
-              onAttentionNeeded={handleAttentionNeeded}
-              onSessionCreated={handleSessionCreated}
-              onSessionForked={handleSessionForked}
-              modelsRefreshKey={modelsRefreshKey}
-              chatInputRef={chatInputRef}
-              onBranchDataChange={handleBranchDataChange}
-              onSystemPromptChange={handleSystemPromptChange}
-              onSystemToolsChange={handleSystemToolsChange}
-              onSystemInfoLoaderChange={handleSystemInfoLoaderChange}
-              onSessionStatsChange={handleSessionStatsChange}
-              onSessionStatsPanelOpen={openSessionStatsPanel}
-              onContextUsageChange={handleContextUsageChange}
-              onOpenFile={handleOpenLinkedFile}
-              onOpenSession={handleOpenSession}
-              soundEnabled={soundEnabled}
-              onSoundToggle={onSoundToggle}
-              playDoneSound={playDoneSound}
-              unlockAudio={unlockAudio}
-            />
+            <RunningSessionChatSlot sessionId={selectedSession?.id ?? null}>
+              {(sessionRunning) => (
+                <ChatWindow
+                  key={sessionKey}
+                  session={selectedSession}
+                  sessionRunning={sessionRunning}
+                  newSessionCwd={effectiveNewSessionCwd}
+                  newSessionDraftKey={newSessionDraftKey}
+                  onAgentEnd={handleAgentEnd}
+                  onAttentionNeeded={handleAttentionNeeded}
+                  onSessionCreated={handleSessionCreated}
+                  onSessionForked={handleSessionForked}
+                  modelsRefreshKey={modelsRefreshKey}
+                  chatInputRef={chatInputRef}
+                  onBranchDataChange={handleBranchDataChange}
+                  onSystemPromptChange={handleSystemPromptChange}
+                  onSystemToolsChange={handleSystemToolsChange}
+                  onSystemInfoLoaderChange={handleSystemInfoLoaderChange}
+                  onSessionStatsChange={handleSessionStatsChange}
+                  onSessionStatsPanelOpen={openSessionStatsPanel}
+                  onContextUsageChange={handleContextUsageChange}
+                  onOpenFile={handleOpenLinkedFile}
+                  onOpenSession={handleOpenSession}
+                  soundEnabled={soundEnabled}
+                  onSoundToggle={onSoundToggle}
+                  playDoneSound={playDoneSound}
+                  unlockAudio={unlockAudio}
+                />
+              )}
+            </RunningSessionChatSlot>
           ) : initialCwdStatus === "validating" ? (
             <div
               role="status"
@@ -2411,7 +2432,7 @@ export function AppShell() {
         ref={rightPanelResizer.panelRef}
         id="file-panel"
         data-pi-web-right-panel="true"
-        className={`right-panel-container${rightPanelOpen ? " right-panel-open" : " right-panel-closed"}${rightPanelResizer.isResizing ? " right-panel-resizing" : ""}`}
+        className={`right-panel-container pi-web-glass-surface${rightPanelOpen ? " right-panel-open" : " right-panel-closed"}${rightPanelResizer.isResizing ? " right-panel-resizing" : ""}`}
         style={{
           "--right-panel-width": `${rightPanelResizer.width}px`,
           display: "flex",

@@ -40,7 +40,7 @@ function statusColor(status: SubagentSessionStatus): string {
 function StatusIcon({ status }: { status: SubagentSessionStatus }) {
   if (status === "running" || status === "starting") {
     return (
-      <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <svg className="pi-web-animation-layer running-session-spinner" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" opacity="0.25" />
         <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>

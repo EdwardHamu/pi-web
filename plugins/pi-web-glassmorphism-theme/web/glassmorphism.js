@@ -6,6 +6,7 @@ const DB_KEY = "wallpaper";
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 const WALLPAPER_LAYER_ATTRIBUTE = "data-pi-web-glass-wallpaper-layer";
 const CHAT_LAYER_ATTRIBUTE = "data-pi-web-glass-chat-layer";
+const CHAT_SURFACE_LAYER_ATTRIBUTE = "data-pi-web-chat-glass-layer";
 
 const FITS = ["cover", "contain", "auto"];
 const POSITIONS = [
@@ -309,8 +310,6 @@ export function apply() {
     const shouldShow = state.enabled && activeUrl;
     if (!shouldShow) {
       document.body.removeAttribute("data-pi-web-glass-wallpaper");
-      document.querySelector(`[${CHAT_LAYER_ATTRIBUTE}]`)?.remove();
-      chatLayer = null;
       if (document.querySelector(`[${WALLPAPER_LAYER_ATTRIBUTE}]`)) {
         document.querySelector(`[${WALLPAPER_LAYER_ATTRIBUTE}]`).remove();
       }
@@ -330,15 +329,18 @@ export function apply() {
   }
 
   function removeChatGlassLayer() {
-    if (chatLayer) chatLayer.remove();
+    if (chatLayer && !chatLayer.hasAttribute(CHAT_SURFACE_LAYER_ATTRIBUTE)) chatLayer.remove();
     chatLayer = null;
     chatHost = null;
     chatColumn = null;
-    document.querySelectorAll(`[${CHAT_LAYER_ATTRIBUTE}]`).forEach((node) => node.remove());
+    document.querySelectorAll(`[${CHAT_LAYER_ATTRIBUTE}]`).forEach((node) => {
+      if (!node.hasAttribute(CHAT_SURFACE_LAYER_ATTRIBUTE)) node.remove();
+    });
   }
 
   function layoutChatGlassLayer() {
     if (!chatLayer || !chatHost || !chatColumn) return;
+    if (chatLayer.hasAttribute(CHAT_SURFACE_LAYER_ATTRIBUTE)) return;
     if (!chatHost.isConnected || !chatColumn.isConnected) {
       removeChatGlassLayer();
       return;
@@ -354,6 +356,17 @@ export function apply() {
   function syncChatGlassLayer() {
     if (disposed || document.body?.dataset.piWebGlassWallpaper !== "on") {
       removeChatGlassLayer();
+      return;
+    }
+    const surfaceLayer = document.querySelector(`[${CHAT_SURFACE_LAYER_ATTRIBUTE}]`);
+    if (surfaceLayer) {
+      // ChatWindow owns this fixed-size sibling layer. Reusing it avoids a
+      // second backdrop-filter surface and keeps streaming DOM changes out of
+      // the plugin's geometry bookkeeping.
+      if (chatLayer !== surfaceLayer) removeChatGlassLayer();
+      chatLayer = surfaceLayer;
+      chatHost = null;
+      chatColumn = null;
       return;
     }
     const column = document.querySelector("[data-pi-web-message-column]");
@@ -680,9 +693,24 @@ export function apply() {
     window.addEventListener("keydown", handleKeydown);
     window.addEventListener("resize", layoutChatGlassLayer, { passive: true });
     window.visualViewport?.addEventListener("resize", layoutChatGlassLayer, { passive: true });
-    observer = new MutationObserver(() => {
-      syncChatGlassLayer();
-      if (!trigger?.isConnected) installTrigger();
+    observer = new MutationObserver((mutations) => {
+      let shellChanged = false;
+      let topbarChanged = false;
+      for (const mutation of mutations) {
+        for (const node of [...mutation.addedNodes, ...mutation.removedNodes]) {
+          if (!(node instanceof Element)) continue;
+          if (
+            node.matches("[data-pi-web-chat-glass-layer], [data-pi-web-chat-scroll], [data-pi-web-message-column]")
+            || node.querySelector("[data-pi-web-chat-glass-layer], [data-pi-web-chat-scroll], [data-pi-web-message-column]")
+          ) shellChanged = true;
+          if (
+            node.matches("[data-pi-web-topbar]")
+            || node.querySelector("[data-pi-web-topbar]")
+          ) topbarChanged = true;
+        }
+      }
+      if (shellChanged) syncChatGlassLayer();
+      if (topbarChanged && !trigger?.isConnected) installTrigger();
     });
     observer.observe(document.body, { childList: true, subtree: true });
     if (state.enabled) void restoreWallpaperAsset();

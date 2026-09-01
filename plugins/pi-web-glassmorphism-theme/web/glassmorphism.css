@@ -237,6 +237,10 @@ body[data-pi-web-glass-wallpaper="on"] .pi-web-glass-surface {
   -webkit-backdrop-filter: none !important;
 }
 
+body[data-pi-web-glass-wallpaper="on"] .right-panel-container.pi-web-glass-surface {
+  position: fixed;
+}
+
 body[data-pi-web-glass-wallpaper="on"] .pi-web-glass-surface::before {
   position: absolute;
   z-index: -1;

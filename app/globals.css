@@ -1858,6 +1858,7 @@ html body [data-pi-web-app="true"] {
 [data-pi-web-message-column="true"] {
   position: relative;
   min-height: calc(var(--app-viewport-height, 100dvh) - 132px);
+  padding-inline: 10px;
 }
 
 /* Full-screen glass and the file panel use the same transparent glass. */
@@ -1958,7 +1959,6 @@ html body [data-pi-web-app="true"] [data-pi-web-composer-surface="true"] {
    a component explicitly opts into its own border. */
 html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] [data-pi-web-topbar="true"],
 html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] [data-pi-web-sidebar="true"],
-html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] [data-pi-web-message-column="true"],
 html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true"] [data-pi-web-composer-surface="true"] {
   border: 1px solid rgb(255 255 255 / 0.14) !important;
 }
@@ -2009,6 +2009,12 @@ html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true
   background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* The file panel is an out-of-flow overlay. Keep its positioning contract
+   when it opts into the shared glass surface treatment. */
+.right-panel-container.pi-web-glass-surface {
+  position: fixed;
 }
 
 .pi-web-glass-surface::before {

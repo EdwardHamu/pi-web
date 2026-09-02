@@ -4,14 +4,8 @@ import test from "node:test";
 
 const chatWindowSource = await readFile(new URL("./ChatWindow.tsx", import.meta.url), "utf8");
 const globalCssSource = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-const pluginCssSource = await readFile(
-  new URL("../plugins/pi-web-glassmorphism-theme/web/glassmorphism.css", import.meta.url),
-  "utf8",
-);
-const pluginJsSource = await readFile(
-  new URL("../plugins/pi-web-glassmorphism-theme/web/glassmorphism.js", import.meta.url),
-  "utf8",
-);
+const appShellSource = await readFile(new URL("./AppShell.tsx", import.meta.url), "utf8");
+const chatInputSource = await readFile(new URL("./ChatInput.tsx", import.meta.url), "utf8");
 
 function cssRule(source, selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -57,10 +51,29 @@ test("keeps backdrop filtering on the dedicated glass layer", () => {
   assert.match(glassRule, /-webkit-backdrop-filter:\s*blur/);
 });
 
-test("reuses the React-owned glass layer and filters plugin shell observation", () => {
-  assert.match(pluginJsSource, /CHAT_SURFACE_LAYER_ATTRIBUTE = "data-pi-web-chat-glass-layer"/);
-  assert.match(pluginJsSource, /document\.querySelector\(`\[\$\{CHAT_SURFACE_LAYER_ATTRIBUTE\}\]\`\)/);
-  assert.match(pluginJsSource, /if \(shellChanged\) syncChatGlassLayer\(\)/);
-  assert.match(pluginJsSource, /node\.matches\("\[data-pi-web-chat-glass-layer\], \[data-pi-web-chat-scroll\], \[data-pi-web-message-column\]"\)/);
-  assert.match(pluginCssSource, /\[data-pi-web-chat-glass-layer="true"\][\s\S]*?contain:\s*paint/);
+test("uses a shared paint-contained pseudo-element for non-scrolling glass", () => {
+  const sharedHostSelector = `:is(
+  .pi-web-glass-surface,
+  [data-pi-web-sidebar="true"],
+  [data-pi-web-floating-menu="true"],
+  [data-pi-web-floating-dialog="true"],
+  [data-pi-web-minimap="true"],
+  [data-minimap-preview-box],
+  [data-pi-web-glass]
+)`;
+  const hostRule = cssRule(globalCssSource, sharedHostSelector);
+  const pseudoRule = cssRule(globalCssSource, `${sharedHostSelector}::before`);
+  const closedSidebarRule = cssRule(globalCssSource, '[data-pi-web-sidebar="true"].sidebar-closed::before');
+
+  assert.match(hostRule, /isolation:\s*isolate/);
+  assert.match(hostRule, /backdrop-filter:\s*none/);
+  assert.match(hostRule, /-webkit-backdrop-filter:\s*none/);
+  assert.doesNotMatch(hostRule, /will-change/);
+  assert.match(pseudoRule, /pointer-events:\s*none/);
+  assert.match(pseudoRule, /contain:\s*paint/);
+  assert.match(pseudoRule, /backdrop-filter:\s*blur/);
+  assert.match(pseudoRule, /-webkit-backdrop-filter:\s*blur/);
+  assert.match(closedSidebarRule, /backdrop-filter:\s*none/);
+  assert.doesNotMatch(appShellSource, /\bbackdropFilter\s*:/);
+  assert.doesNotMatch(chatInputSource, /\b(?:backdropFilter|WebkitBackdropFilter)\s*:/);
 });

@@ -2001,7 +2001,6 @@ export function AppShell() {
                     alignItems: "stretch",
                     background: "color-mix(in srgb, var(--bg-panel) 94%, var(--bg))",
                     boxShadow: "4px 0 18px rgba(0,0,0,0.12)",
-                    backdropFilter: "blur(10px)",
                   }}
                 >
                   {renderChatToolbarActions(true)}

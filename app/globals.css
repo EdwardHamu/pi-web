@@ -1687,7 +1687,6 @@ html body [data-pi-web-app="true"] {
 
 [data-pi-web-right-panel="true"],
 [data-pi-web-composer-surface="true"],
-[data-pi-web-sidebar="true"]::before,
 [data-pi-web-topbar="true"]::before,
 [data-pi-web-right-panel="true"]::before,
 [data-pi-web-composer-surface="true"]::before {
@@ -1709,10 +1708,7 @@ html body [data-pi-web-app="true"] {
   background-color: transparent !important;
 }
 
-/* The glassmorphism plugin paints its surface on the root pseudo-elements,
-   so descendant-only overrides cannot make these panels genuinely transparent. */
-[data-pi-web-sidebar="true"]::before,
-[data-pi-web-sidebar="true"]::after,
+/* Keep the remaining dedicated chrome pseudo-elements transparent. */
 [data-pi-web-topbar="true"]::before,
 [data-pi-web-topbar="true"]::after,
 [data-pi-web-composer-surface="true"]::before,
@@ -1877,14 +1873,6 @@ html body [data-pi-web-app="true"] {
   box-shadow: none !important;
 }
 
-/* Menus marked as glass blur the wallpaper below, including menus positioned
-   with position: fixed. */
-[data-pi-web-floating-menu="true"][data-pi-web-glass="true"],
-[data-pi-web-floating-dialog="true"] {
-  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
-  backdrop-filter: blur(10px) saturate(145%) !important;
-}
-
 [data-pi-web-wallpaper-settings="true"],
 [data-pi-web-wallpaper-settings="true"] *,
 [data-pi-web-wallpaper-settings="true"] *::before,
@@ -1902,56 +1890,10 @@ html body [data-pi-web-app="true"] [data-pi-web-composer-surface="true"] {
   border: 1px solid rgb(255 255 255 / 0.14) !important;
 }
 
-[data-pi-web-minimap="true"] {
-  position: relative;
-  isolation: isolate;
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-[data-pi-web-minimap="true"]::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: inherit;
-  background: transparent !important;
-  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
-  backdrop-filter: blur(10px) saturate(145%) !important;
-}
-
-[data-minimap-preview-box] {
-  background: transparent !important;
-  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
-  backdrop-filter: blur(10px) saturate(145%) !important;
-}
-
 @media (max-width: 640px) {
   [data-pi-web-topbar="true"] {
     margin: 0 12px;
   }
-}
-
-/* Keep the sidebar content on a transparent surface and put its blur in a
-   dedicated background layer. This avoids compositing every sidebar child. */
-[data-pi-web-sidebar="true"] {
-  isolation: isolate;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-[data-pi-web-sidebar="true"]::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: inherit;
-  background: transparent !important;
-  -webkit-backdrop-filter: blur(10px) saturate(145%) !important;
-  backdrop-filter: blur(10px) saturate(145%) !important;
 }
 
 /* Give only the primary glass containers a border. Do not target descendants:
@@ -2000,15 +1942,29 @@ html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true
   border-bottom: 0 !important;
 }
 
-/* Keep the expensive backdrop read on a stable layer. The surface itself
-   contains layout and animated content; its pseudo-element samples the
-   wallpaper once and remains below that content in the same isolated stack. */
-.pi-web-glass-surface {
+/* All transient glass surfaces keep the filter on a paint-contained
+   pseudo-element. The host stays transparent so content updates do not
+   invalidate the wallpaper sample. */
+:is(
+  .pi-web-glass-surface,
+  [data-pi-web-sidebar="true"],
+  [data-pi-web-floating-menu="true"],
+  [data-pi-web-floating-dialog="true"],
+  [data-pi-web-minimap="true"],
+  [data-minimap-preview-box],
+  [data-pi-web-glass]
+) {
   position: relative;
   isolation: isolate;
   background: transparent !important;
-  backdrop-filter: none !important;
+  background-color: transparent !important;
   -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* The minimap preview intentionally remains an out-of-flow overlay. */
+[data-minimap-preview-box] {
+  position: absolute;
 }
 
 /* The file panel is an out-of-flow overlay. Keep its positioning contract
@@ -2017,7 +1973,15 @@ html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true
   position: fixed;
 }
 
-.pi-web-glass-surface::before {
+:is(
+  .pi-web-glass-surface,
+  [data-pi-web-sidebar="true"],
+  [data-pi-web-floating-menu="true"],
+  [data-pi-web-floating-dialog="true"],
+  [data-pi-web-minimap="true"],
+  [data-minimap-preview-box],
+  [data-pi-web-glass]
+)::before {
   position: absolute;
   z-index: -1;
   inset: 0;
@@ -2026,8 +1990,16 @@ html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true
   border-radius: inherit;
   background: var(--pi-glass-surface, transparent) !important;
   contain: paint;
-  backdrop-filter: blur(var(--pi-glass-blur, 10px)) saturate(var(--pi-glass-saturation, 145%)) !important;
   -webkit-backdrop-filter: blur(var(--pi-glass-blur, 10px)) saturate(var(--pi-glass-saturation, 145%)) !important;
+  backdrop-filter: blur(var(--pi-glass-blur, 10px)) saturate(var(--pi-glass-saturation, 145%)) !important;
+}
+
+/* A mobile sidebar stays mounted while translated off-screen. Drop its
+   filtered layer immediately so it does not keep sampling the wallpaper. */
+[data-pi-web-sidebar="true"].sidebar-closed::before {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /* A translated desktop panel is still mounted for tab-state continuity, but
@@ -2035,8 +2007,8 @@ html body [data-pi-web-app="true"][data-pi-web-app="true"][data-pi-web-app="true
 .pi-web-glass-surface.right-panel-closed,
 .pi-web-glass-surface.right-panel-closed::before {
   background: transparent !important;
-  backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 .pi-web-glass-surface.right-panel-closed {

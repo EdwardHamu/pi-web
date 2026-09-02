@@ -6,16 +6,17 @@ const chatWindowSource = await readFile(new URL("./ChatWindow.tsx", import.meta.
 const globalCssSource = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 const appShellSource = await readFile(new URL("./AppShell.tsx", import.meta.url), "utf8");
 const chatInputSource = await readFile(new URL("./ChatInput.tsx", import.meta.url), "utf8");
+const sessionSidebarSource = await readFile(new URL("./SessionSidebar.tsx", import.meta.url), "utf8");
 
 function cssRule(source, selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const matches = [...source.matchAll(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, "g"))];
+  const matches = [...source.replace(/\r\n/g, "\n").matchAll(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, "g"))];
   return matches.at(-1)?.[1] ?? "";
 }
 
 function cssRules(source, selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return [...source.matchAll(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, "g"))]
+  return [...source.replace(/\r\n/g, "\n").matchAll(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, "g"))]
     .map((match) => match[1]);
 }
 
@@ -44,6 +45,49 @@ test("bounds the live chat layer and promotes it only while active", () => {
   assert.match(liveRule, /isolation:\s*isolate/);
   assert.match(activeRule, /will-change:\s*transform,\s*opacity/);
   assert.match(chatWindowSource, /data-active=\{sessionBusy \|\| streamState\.isStreaming \? "true" : "false"\}/);
+});
+
+test("contains sidebar spinners and live message-column status labels", () => {
+  const animationLayerRule = cssRule(globalCssSource, ".pi-web-animation-layer");
+  const messageStatusRule = cssRule(
+    globalCssSource,
+    '[data-pi-web-message-column="true"] .pi-web-animation-layer.running-status-animation',
+  );
+  const spinnerContainerMatches = [
+    ...sessionSidebarSource.matchAll(
+      /<span\s+className="pi-web-animation-layer"[\s\S]*?<svg className="running-session-spinner"/g,
+    ),
+  ];
+
+  assert.match(animationLayerRule, /contain:\s*paint/);
+  assert.match(messageStatusRule, /contain:\s*paint/);
+  assert.equal(spinnerContainerMatches.length, 2);
+  assert.match(
+    chatWindowSource,
+    /<span className="pi-web-animation-layer running-status-animation">/,
+  );
+});
+
+test("updates isolated animations on a 250ms discrete cadence", () => {
+  const extensionLayerRule = cssRules(globalCssSource, ".extension-widget-update-pulse")
+    .find((rule) => /transition:\s*opacity\s+250ms/.test(rule)) ?? "";
+  const extensionPulseRule = cssRules(
+    globalCssSource,
+    ".extension-widget-trigger.is-updating .extension-widget-update-pulse::before",
+  ).find((rule) => /animation:\s*extension-widget-update-pulse/.test(rule)) ?? "";
+  const statusRule = cssRule(globalCssSource, ".running-status-animation");
+  const spinnerRule = cssRule(globalCssSource, ".running-session-spinner");
+  const sessionPulseRule = cssRule(globalCssSource, ".running-session-pulse");
+  const rippleRule = cssRule(globalCssSource, ".drop-ripple-animation");
+
+  assert.match(extensionLayerRule, /transition:\s*opacity\s+250ms\s+steps\(1,\s*end\)/);
+  assert.match(extensionPulseRule, /animation:\s*extension-widget-update-pulse\s+1s\s+steps\(4,\s*end\)\s+infinite\s+alternate/);
+  assert.match(statusRule, /animation:\s*pulse\s+1\.5s\s+steps\(6,\s*end\)\s+infinite/);
+  assert.match(spinnerRule, /animation:\s*spin\s+1s\s+steps\(4,\s*end\)\s+infinite/);
+  assert.match(sessionPulseRule, /animation:\s*session-activity-pulse\s+1\.5s\s+steps\(6,\s*end\)\s+infinite/);
+  assert.match(rippleRule, /animation:\s*drop-ripple\s+2\.5s\s+steps\(10,\s*end\)\s+infinite\s+backwards/);
+  assert.match(chatWindowSource, /\{\[0,\s*0\.75,\s*1\.5\]\.map\(\(delay\) => \(/);
+  assert.doesNotMatch(chatWindowSource, /animate-\[(?:pulse_1\.5s_infinite|drop-ripple_2\.4s_ease-out_infinite_backwards)\]/);
 });
 
 test("keeps backdrop filtering on the dedicated glass layer", () => {

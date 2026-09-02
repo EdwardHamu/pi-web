@@ -691,10 +691,10 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
       {isDragOver && (
         <div className="pointer-events-none absolute inset-0 z-50 flex animate-[drop-zone-in_0.15s_ease_both] items-center justify-center bg-[rgba(37,99,235,0.06)] backdrop-blur-[1px]">
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            {[0, 0.8, 1.6].map((delay) => (
+            {[0, 0.75, 1.5].map((delay) => (
               <div
                 key={delay}
-                className="pi-web-animation-layer drop-ripple-animation absolute h-[720px] w-[720px] rounded-full border-[1.5px] border-solid border-[rgba(37,99,235,0.5)] animate-[drop-ripple_2.4s_ease-out_infinite_backwards]"
+                className="pi-web-animation-layer drop-ripple-animation absolute h-[720px] w-[720px] rounded-full border-[1.5px] border-solid border-[rgba(37,99,235,0.5)]"
                 style={{ transformOrigin: "center", animationDelay: `${delay}s` }}
               />
             ))}
@@ -993,13 +993,13 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
 
               {agentRunning && !hasStreamingContent && agentPhase && (
                 <div className="break-words py-2 text-[13px] text-text-muted">
-                  <span className="pi-web-animation-layer running-status-animation animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t)}</span>
+                  <span className="pi-web-animation-layer running-status-animation">{phaseLabel(agentPhase, t)}</span>
                 </div>
               )}
 
               {bashRunning && !pendingBash && (
                 <div className="py-2 text-[13px] text-text-muted">
-                   <span className="pi-web-animation-layer running-status-animation animate-[pulse_1.5s_infinite]">{t("chat.runningCommand")}</span>
+                   <span className="pi-web-animation-layer running-status-animation">{t("chat.runningCommand")}</span>
                 </div>
               )}
 

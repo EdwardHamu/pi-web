@@ -13,6 +13,12 @@ function cssRule(source, selector) {
   return matches.at(-1)?.[1] ?? "";
 }
 
+function cssRules(source, selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return [...source.matchAll(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, "g"))]
+    .map((match) => match[1]);
+}
+
 test("keeps the chat backdrop layer outside the scrolling content subtree", () => {
   const glassIndex = chatWindowSource.indexOf('data-pi-web-chat-glass-layer="true"');
   const scrollIndex = chatWindowSource.indexOf('ref={scrollContainerRef}');
@@ -54,7 +60,6 @@ test("keeps backdrop filtering on the dedicated glass layer", () => {
 test("uses a shared paint-contained pseudo-element for non-scrolling glass", () => {
   const sharedHostSelector = `:is(
   .pi-web-glass-surface,
-  [data-pi-web-sidebar="true"],
   [data-pi-web-floating-menu="true"],
   [data-pi-web-floating-dialog="true"],
   [data-pi-web-minimap="true"],
@@ -63,7 +68,14 @@ test("uses a shared paint-contained pseudo-element for non-scrolling glass", () 
 )`;
   const hostRule = cssRule(globalCssSource, sharedHostSelector);
   const pseudoRule = cssRule(globalCssSource, `${sharedHostSelector}::before`);
-  const closedSidebarRule = cssRule(globalCssSource, '[data-pi-web-sidebar="true"].sidebar-closed::before');
+  const sidebarHostRule = cssRule(globalCssSource, '[data-pi-web-sidebar="true"]');
+  const sidebarLayerRules = cssRules(globalCssSource, '[data-pi-web-sidebar-glass-layer="true"]');
+  const sidebarLayerRule = sidebarLayerRules.find((rule) => /contain:\s*paint/.test(rule)) ?? "";
+  const closedSidebarRule = cssRules(globalCssSource, '[data-pi-web-sidebar-glass-layer="true"].sidebar-closed')
+    .find((rule) => /backdrop-filter:\s*none/.test(rule)) ?? "";
+  const overlayIndex = appShellSource.indexOf('className={`sidebar-overlay-backdrop');
+  const sidebarGlassIndex = appShellSource.indexOf('data-pi-web-sidebar-glass-layer="true"');
+  const sidebarIndex = appShellSource.indexOf('data-pi-web-sidebar="true"');
 
   assert.match(hostRule, /isolation:\s*isolate/);
   assert.match(hostRule, /backdrop-filter:\s*none/);
@@ -73,6 +85,14 @@ test("uses a shared paint-contained pseudo-element for non-scrolling glass", () 
   assert.match(pseudoRule, /contain:\s*paint/);
   assert.match(pseudoRule, /backdrop-filter:\s*blur/);
   assert.match(pseudoRule, /-webkit-backdrop-filter:\s*blur/);
+  assert.ok(overlayIndex >= 0, "sidebar overlay is missing");
+  assert.ok(sidebarGlassIndex > overlayIndex, "sidebar glass must sit above the mobile overlay");
+  assert.ok(sidebarIndex > sidebarGlassIndex, "sidebar content must sit above its glass layer");
+  assert.doesNotMatch(globalCssSource, /\[data-pi-web-sidebar="true"\]::before/);
+  assert.match(sidebarHostRule, /backdrop-filter:\s*none/);
+  assert.match(sidebarLayerRule, /pointer-events:\s*none/);
+  assert.match(sidebarLayerRule, /contain:\s*paint/);
+  assert.match(sidebarLayerRule, /backdrop-filter:\s*blur/);
   assert.match(closedSidebarRule, /backdrop-filter:\s*none/);
   assert.doesNotMatch(appShellSource, /\bbackdropFilter\s*:/);
   assert.doesNotMatch(chatInputSource, /\b(?:backdropFilter|WebkitBackdropFilter)\s*:/);

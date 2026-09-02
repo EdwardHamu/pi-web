@@ -1839,6 +1839,11 @@ export function AppShell() {
           transform: translateX(calc(-100% - env(safe-area-inset-left)));
           box-shadow: none;
         }
+        .sidebar-glass-layer.sidebar-mobile-pending.sidebar-open {
+          transform: translateX(calc(-100% - env(safe-area-inset-left)));
+          -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+        }
       }
     `}</style>
     {/* Keep ReLingo from annotating the SSR-managed application subtree before hydration. */}
@@ -1870,6 +1875,16 @@ export function AppShell() {
           pointerEvents: sidebarOpen ? "auto" : "none",
           transition: "opacity 0.25s ease",
         }}
+      />
+
+      {/* Keep the wallpaper read outside the sidebar's frequently changing content. */}
+      <div
+        aria-hidden="true"
+        data-pi-web-sidebar-glass-layer="true"
+        className={`sidebar-glass-layer${sidebarOpen ? " sidebar-open" : " sidebar-closed"}${mobileSidebarReady ? "" : " sidebar-mobile-pending"}${sidebarResizer.isResizing ? " sidebar-resizing" : ""}`}
+        style={{
+          "--sidebar-width": `${sidebarResizer.width}px`,
+        } as React.CSSProperties}
       />
 
       {/* Left sidebar */}

@@ -141,6 +141,7 @@ body[data-pi-web-glass-wallpaper="on"] [data-pi-web-right-panel]::before {
   z-index: -1;
   inset: 0;
   content: "";
+  will-change: contents;
   pointer-events: none;
   background: var(--pi-glass-surface);
   border: 1px solid var(--pi-glass-border);
@@ -160,6 +161,7 @@ body[data-pi-web-glass-wallpaper="on"] [data-pi-web-topbar]::before {
   z-index: -1;
   inset: 0;
   content: "";
+  will-change: contents;
   pointer-events: none;
   background: var(--pi-glass-surface);
   border-bottom: 1px solid var(--pi-glass-border);
@@ -186,6 +188,7 @@ body[data-pi-web-glass-wallpaper="on"] [data-pi-web-composer-surface]::before {
   inset: 0;
   content: "";
   pointer-events: none;
+  will-change: contents;
   border-radius: inherit;
   background: var(--pi-glass-surface);
   backdrop-filter: blur(var(--pi-glass-blur)) saturate(var(--pi-glass-saturation));
